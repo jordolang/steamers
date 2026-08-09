@@ -175,8 +175,8 @@ export function EventsSection() {
             <article className="group relative isolate overflow-hidden rounded-lg border border-ink-3">
               <div className="relative aspect-[16/10]">
                 <AmbientVideo
-                  src="/media/video/bar.mp4"
-                  poster="/media/poster/bar.jpg"
+                  src="/media/video/bar-real.mp4"
+                  poster="/media/poster/bar-real.jpg"
                   className="absolute inset-0 size-full"
                 />
                 <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink via-ink/20 to-transparent" />
@@ -218,7 +218,19 @@ export function EventsSection() {
 
 export function VisitSection() {
   return (
-    <section id="visit" aria-labelledby="visit-title" className="relative z-10 scroll-mt-[68px] bg-ink-2 py-28 sm:py-36">
+    <section
+      id="visit"
+      aria-labelledby="visit-title"
+      className="relative z-10 isolate overflow-hidden scroll-mt-[68px] bg-ink-2 py-28 sm:py-36"
+    >
+      {/* The front door, under the arch — what you actually walk toward. */}
+      <AmbientVideo
+        src="/media/video/entrance-arch.mp4"
+        poster="/media/poster/entrance-arch.jpg"
+        className="absolute inset-0 -z-10 size-full opacity-20"
+      />
+      <div aria-hidden className="absolute inset-0 -z-10 bg-ink-2/80" />
+
       <div className="mx-auto max-w-[1400px] px-5 sm:px-8">
         <div className="grid gap-16 lg:grid-cols-2 lg:gap-24">
           <Reveal>

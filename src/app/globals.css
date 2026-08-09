@@ -20,8 +20,15 @@
   --color-carmine-bright: #c01030;
   --color-carmine-deep: #98001f;
 
+  /* Sampled from photographs of the building itself. The double neon arch
+     over the entrance is the single most recognisable thing about this
+     restaurant, so its two tube colours are first-class brand tokens. */
+  --color-neon-cyan: #35cdf2; /* inner arch tube */
+  --color-neon-violet: #6f5ae8; /* outer arch tube */
+  --color-maroon: #5b2a33; /* trim, wainscot, window frames */
+
   --color-ember: #e8a13c; /* tungsten window glow */
-  --color-limestone: #c9c2b6; /* fieldstone — body copy */
+  --color-limestone: #c9c2b6; /* ledgestone — body copy */
   --color-limestone-dim: #8b847a; /* secondary copy */
   --color-steam: #f5f2ec; /* steam — headings */
 
@@ -230,6 +237,56 @@ body {
     transparent 70%
   );
   animation: steam-drift-b 25s ease-in-out infinite;
+}
+
+/* ---------- the arch ----------
+   The entrance carries a double neon arch — outer tube violet, inner tube
+   cyan. It is the thing regulars picture when they picture this place, so it
+   becomes the hero's framing device rather than a decorative flourish.
+   Drawn with borders so it costs nothing and scales cleanly. */
+
+.arch {
+  position: relative;
+  aspect-ratio: 2 / 1;
+  /* A true half-ellipse: 50% horizontally, 100% vertically, top corners only. */
+  border: 3px solid var(--color-neon-violet);
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--color-neon-violet) 70%, transparent),
+    inset 0 0 14px color-mix(in srgb, var(--color-neon-violet) 40%, transparent);
+}
+.arch::before {
+  content: "";
+  position: absolute;
+  /* Concentric inner tube, springing from the same baseline. */
+  inset: 22% 22% 0 22%;
+  border: 3px solid var(--color-neon-cyan);
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--color-neon-cyan) 75%, transparent),
+    inset 0 0 12px color-mix(in srgb, var(--color-neon-cyan) 40%, transparent);
+}
+
+/* Neon warms up rather than snapping on, the way real tubes do. */
+@keyframes neon-settle {
+  0% { opacity: 0.25; filter: saturate(0.4); }
+  55% { opacity: 1; filter: saturate(1.15); }
+  70% { opacity: 0.72; }
+  100% { opacity: 1; filter: saturate(1); }
+}
+.arch-lit {
+  animation: neon-settle 2.4s var(--ease-out-expo) both;
+}
+
+/* Text set in the cyan tube colour, with the same bloom. */
+.neon-text {
+  color: var(--color-neon-cyan);
+  text-shadow:
+    0 0 6px color-mix(in srgb, var(--color-neon-cyan) 80%, transparent),
+    0 0 22px color-mix(in srgb, var(--color-neon-cyan) 50%, transparent),
+    0 0 48px color-mix(in srgb, var(--color-neon-violet) 35%, transparent);
 }
 
 /* ---------- hairline rule with a carmine tick ---------- */

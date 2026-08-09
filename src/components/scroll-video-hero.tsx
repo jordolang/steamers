@@ -17,7 +17,7 @@ const PANELS = [
     eyebrow: ["Seafood", "Pasta", "Steak"],
     title: "Steamers",
     accent: "Stonewall Tavern",
-    body: "A stone tavern on Market Street in North Lima. Family-run since 2003, and still the kind of place you can walk in wearing a work shirt and order king crab.",
+    body: "On Market Street in North Lima, under the blue arches. Family-run since 2003, and still the kind of place you can walk in wearing a work shirt and order king crab.",
     primary: true,
   },
   {
@@ -141,8 +141,8 @@ export function ScrollVideoHero() {
       >
         <video
           ref={videoRef}
-          src="/media/video/exterior-approach.mp4"
-          poster="/media/poster/exterior-approach.jpg"
+          src="/media/video/exterior-arrival.mp4"
+          poster="/media/poster/exterior-arrival.jpg"
           muted
           playsInline
           preload="none"
@@ -190,12 +190,20 @@ export function ScrollVideoHero() {
               </p>
 
               {i === 0 ? (
-                <h1 id="hero-title" className="display-xl">
-                  {panel.title}
-                  <span className="mt-2 block text-[0.34em] leading-tight tracking-[0.01em] text-carmine-bright sm:mt-1 sm:text-[0.42em]">
-                    {panel.accent}
-                  </span>
-                </h1>
+                <>
+                  {/* The double neon arch over the real entrance, redrawn in
+                      CSS. Locals navigate by it, so the page opens with it. */}
+                  <div
+                    aria-hidden
+                    className="arch arch-lit mb-5 w-32 sm:mb-6 sm:w-40"
+                  />
+                  <h1 id="hero-title" className="display-xl">
+                    {panel.title}
+                    <span className="mt-2 block text-[0.34em] leading-tight tracking-[0.01em] text-carmine-bright sm:mt-1 sm:text-[0.42em]">
+                      {panel.accent}
+                    </span>
+                  </h1>
+                </>
               ) : (
                 <h2 className="display-lg">
                   {panel.title}{" "}
