@@ -31,8 +31,8 @@ const PANELS = [
   },
   {
     eyebrow: ["North Lima", "Ohio", "Est. 2003"],
-    title: "A Cheers-like atmosphere,",
-    accent: "where the dress is casual.",
+    title: "That",
+    accent: "Cheers-like atmosphere",
     body: "Josh DeNapoli's own words for the room his family remodeled in 2003. In off Market Street, through the landing, and the bar is the first thing you see.",
   },
   {
