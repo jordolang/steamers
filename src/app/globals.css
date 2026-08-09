@@ -1,26 +1,265 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================
+   Steamers Stonewall Tavern — design tokens
+
+   Palette is sampled, not invented:
+     carmine        = the logo wordmark gradient, mid  (#B00828)
+     carmine-bright = the logo wordmark gradient, top  (#C01030)
+     carmine-deep   = the logo wordmark gradient, base (#98001F)
+   The rest is drawn from the building itself — fieldstone grey,
+   tungsten window glow, and the steam the place is named for.
+   ============================================================ */
+
+@theme {
+  --color-ink: #0b0a09; /* warm near-black; the room at night */
+  --color-ink-2: #131010; /* raised surface */
+  --color-ink-3: #1d1917; /* hairline / border */
+
+  --color-carmine: #b00828;
+  --color-carmine-bright: #c01030;
+  --color-carmine-deep: #98001f;
+
+  --color-ember: #e8a13c; /* tungsten window glow */
+  --color-limestone: #c9c2b6; /* fieldstone — body copy */
+  --color-limestone-dim: #8b847a; /* secondary copy */
+  --color-steam: #f5f2ec; /* steam — headings */
+
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-archivo), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, "SF Mono", monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ---------- base ---------- */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+  /* Nav is 68px; anchor targets shouldn't hide under it. */
+  scroll-padding-top: 68px;
+  background: var(--color-ink);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-ink);
+  color: var(--color-limestone);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--color-carmine);
+  color: var(--color-steam);
+}
+
+/* Keyboard focus stays visible everywhere. */
+:focus-visible {
+  outline: 2px solid var(--color-ember);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ---------- display type ---------- */
+
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+}
+
+/* Fraunces variable axes: SOFT rounds the terminals, WONK enables the
+   quirkier alternates. A touch of both keeps the display face from
+   reading like a stock high-contrast serif. */
+.display-xl,
+.display-lg,
+.display-md {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 20, "WONK" 1;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 0.92;
+  color: var(--color-steam);
+  text-wrap: balance;
+}
+
+.display-xl {
+  font-size: clamp(2.9rem, 10.5vw, 8.5rem);
+}
+.display-lg {
+  font-size: clamp(2.3rem, 6.2vw, 4.6rem);
+}
+.display-md {
+  font-size: clamp(1.65rem, 3.4vw, 2.6rem);
+  line-height: 1;
+}
+
+/* ---------- the pipe ----------
+   The restaurant writes its own menu with pipes:
+     "crab meat | cream cheese mixture | toasted baguette"
+   That delimiter is this brand's punctuation, so it becomes the site's
+   connective glyph rather than a decoration we invented. */
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--color-limestone-dim);
+}
+
+.pipe {
+  color: var(--color-carmine-bright);
+  padding-inline: 0.5em;
+  font-weight: 400;
+}
+
+/* Dish descriptions: the pipes get air and colour so each line reads as
+   an ingredient rhythm instead of a run-on sentence. */
+.dish-desc .pipe {
+  padding-inline: 0.45em;
+  opacity: 0.85;
+}
+
+/* ---------- menu leaders ----------
+   A printed-menu device: name, dotted leader, price. Pure CSS, so it
+   reflows correctly at any width and stays selectable. */
+
+.leader {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  width: 100%;
+}
+.leader__dots {
+  flex: 1 1 auto;
+  border-bottom: 1px dotted color-mix(in srgb, var(--color-limestone) 28%, transparent);
+  transform: translateY(-0.28em);
+  min-width: 1.5rem;
+}
+.leader__price {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9375rem;
+  color: var(--color-ember);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+/* ---------- scroll reveal ----------
+   IntersectionObserver adds .is-visible. Transform+opacity only, so it
+   stays on the compositor. */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.85s var(--ease-out-expo),
+    transform 0.85s var(--ease-out-expo);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+/* Staggered children, for lists that should cascade. */
+.reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.7s var(--ease-out-expo),
+    transform 0.7s var(--ease-out-expo);
+}
+.reveal-stagger.is-visible > * {
+  opacity: 1;
+  transform: none;
+}
+.reveal-stagger.is-visible > *:nth-child(1) { transition-delay: 0ms; }
+.reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 70ms; }
+.reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 140ms; }
+.reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 210ms; }
+.reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 280ms; }
+.reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 350ms; }
+
+/* ---------- text legibility over footage ----------
+   A shadow rather than a full scrim, so the video keeps its brightness. */
+.on-film {
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.92),
+    0 2px 12px rgba(0, 0, 0, 0.8),
+    0 6px 38px rgba(0, 0, 0, 0.72);
+}
+
+/* ---------- steam ----------
+   The signature ambient texture. Two offset radial fields drifting at
+   different rates read as vapour without a video or a sprite sheet. */
+@keyframes steam-drift-a {
+  0%   { transform: translate3d(-6%, 4%, 0) scale(1.08); opacity: 0.5; }
+  50%  { transform: translate3d(4%, -6%, 0) scale(1.22); opacity: 0.78; }
+  100% { transform: translate3d(-6%, 4%, 0) scale(1.08); opacity: 0.5; }
+}
+@keyframes steam-drift-b {
+  0%   { transform: translate3d(5%, -3%, 0) scale(1.18); opacity: 0.62; }
+  50%  { transform: translate3d(-5%, 6%, 0) scale(1.02); opacity: 0.36; }
+  100% { transform: translate3d(5%, -3%, 0) scale(1.18); opacity: 0.62; }
+}
+.steam-field::before,
+.steam-field::after {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(46px);
+}
+.steam-field::before {
+  background: radial-gradient(
+    closest-side,
+    rgba(245, 242, 236, 0.16),
+    transparent 72%
+  );
+  animation: steam-drift-a 19s ease-in-out infinite;
+}
+.steam-field::after {
+  background: radial-gradient(
+    closest-side,
+    rgba(232, 161, 60, 0.11),
+    transparent 70%
+  );
+  animation: steam-drift-b 25s ease-in-out infinite;
+}
+
+/* ---------- hairline rule with a carmine tick ---------- */
+.rule {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    var(--color-carmine) 0,
+    var(--color-carmine) 44px,
+    var(--color-ink-3) 44px,
+    var(--color-ink-3) 100%
+  );
+}
+
+/* ---------- reduced motion ----------
+   Everything ambient stops; reveals resolve to their final state. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .reveal,
+  .reveal-stagger > * {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
