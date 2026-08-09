@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { SITE } from "@/data/site";
 import { useScrollScrub } from "./use-scroll-scrub";
 
@@ -68,12 +68,35 @@ export function ScrollVideoHero() {
     return () => window.removeEventListener("resize", measureNav);
   }, []);
 
-  /** Fade the "Scroll" cue out as soon as the walk starts moving. */
-  const onProgress = useCallback((progress: number) => {
-    if (!cueRef.current) return;
-    cueRef.current.style.opacity = String(
-      Math.min(Math.max((0.08 - progress) / 0.06, 0), 1),
-    );
+  /**
+   * Fade the "Scroll" cue out as soon as the page starts moving.
+   *
+   * Driven by scroll rather than by the scrub, because the scrub does not run
+   * on a phone, under reduced motion, or on a link too slow to carry the
+   * footage — and on every one of those the cue would otherwise sit there
+   * saying "Scroll" for the whole six and a half screens.
+   */
+  useEffect(() => {
+    const section = sectionRef.current;
+    const cue = cueRef.current;
+    if (!section || !cue) return;
+
+    const update = () => {
+      const rect = section.getBoundingClientRect();
+      const span = rect.height - window.innerHeight;
+      const progress = span > 0 ? Math.min(Math.max(-rect.top / span, 0), 1) : 0;
+      cue.style.opacity = String(
+        Math.min(Math.max((0.08 - progress) / 0.06, 0), 1),
+      );
+    };
+
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
   }, []);
 
   // Below 768px the footage is never fetched and the poster stands in:
@@ -84,7 +107,6 @@ export function ScrollVideoHero() {
     src: SCRUB_FULL,
     liteSrc: SCRUB_LITE,
     minWidth: 768,
-    onProgress,
   });
 
   return (

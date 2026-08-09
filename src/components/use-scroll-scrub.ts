@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, type RefObject } from "react";
 
 type Connection = {
   saveData?: boolean;
@@ -43,8 +43,6 @@ export type ScrubOptions = {
   liteSrc?: string;
   /** How hard the playhead chases the scroll. Lower is looser. */
   ease?: number;
-  /** Called every frame with 0–1 scroll progress, for cues and overlays. */
-  onProgress?: (progress: number) => void;
   /** Skip below this viewport width. 0 runs everywhere. */
   minWidth?: number;
 };
@@ -68,15 +66,8 @@ export type ScrubOptions = {
 export function useScrollScrub(
   sectionRef: RefObject<HTMLElement | null>,
   videoRef: RefObject<HTMLVideoElement | null>,
-  { src, liteSrc, poster, ease = 0.12, onProgress, minWidth = 0 }: ScrubOptions,
+  { src, liteSrc, poster, ease = 0.12, minWidth = 0 }: ScrubOptions,
 ) {
-  // Held in a ref so a caller passing an inline callback cannot tear the
-  // whole scrub down and re-attach the video on every render.
-  const progressRef = useRef(onProgress);
-  useEffect(() => {
-    progressRef.current = onProgress;
-  }, [onProgress]);
-
   useEffect(() => {
     const section = sectionRef.current;
     const video = videoRef.current;
@@ -93,17 +84,26 @@ export function useScrollScrub(
     let raf = 0;
     let scrubbed = 0;
     let dead = false;
+    let reach = 0;
 
     /**
-     * How much of the file has arrived, counting only the run that starts at
-     * the beginning — the only one a forward scrub can rely on.
+     * How far into the file it is safe to seek: the end of the buffered run we
+     * are sitting in, or of the one anchored at the head.
+     *
+     * Kept as a high-water mark on purpose. A browser is free to evict the
+     * front of the buffer once it has been played past, and if that eviction
+     * were allowed to pull the ceiling back down, the clamp would force the
+     * playhead to zero — the exact snap-to-the-start this exists to prevent.
      */
     const arrived = () => {
       const ranges = video.buffered;
+      const at = video.currentTime;
       for (let i = 0; i < ranges.length; i += 1) {
-        if (ranges.start(i) <= 0.25) return ranges.end(i);
+        const head = ranges.start(i) <= 0.25;
+        const here = ranges.start(i) <= at + 0.05 && ranges.end(i) >= at;
+        if (head || here) reach = Math.max(reach, ranges.end(i));
       }
-      return 0;
+      return reach;
     };
 
     const tick = () => {
@@ -112,8 +112,6 @@ export function useScrollScrub(
       const rect = section.getBoundingClientRect();
       const span = rect.height - window.innerHeight;
       const progress = span > 0 ? Math.min(Math.max(-rect.top / span, 0), 1) : 0;
-
-      progressRef.current?.(progress);
 
       if (dead || !video.duration) return;
 
@@ -150,27 +148,32 @@ export function useScrollScrub(
       video.play().then(() => video.pause()).catch(() => {});
     };
 
-    // Run the loop only while the section is on screen, and don't spend the
-    // connection on footage until the section is within a screen of being
-    // needed — the hero qualifies immediately, anything below the fold waits.
-    const observer = new IntersectionObserver(
+    // Don't spend the connection on footage until the section is within a
+    // screen of being needed — the hero qualifies immediately, anything below
+    // the fold waits until it is nearly in view.
+    const prefetch = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          if (!raf) raf = requestAnimationFrame(tick);
-          if (idle === undefined) {
-            idle =
-              typeof window.requestIdleCallback === "function"
-                ? window.requestIdleCallback(attach, { timeout: 1500 })
-                : window.setTimeout(attach, 400);
-          }
-        } else if (raf) {
-          cancelAnimationFrame(raf);
-          raf = 0;
-        }
+        if (!entry.isIntersecting || idle !== undefined) return;
+        idle =
+          typeof window.requestIdleCallback === "function"
+            ? window.requestIdleCallback(attach, { timeout: 1500 })
+            : window.setTimeout(attach, 400);
       },
       { rootMargin: "100% 0px" },
     );
-    observer.observe(section);
+    prefetch.observe(section);
+
+    // The loop is a forced layout every frame, so it runs only while the
+    // section is genuinely on screen — never for a neighbour a screen away.
+    const running = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !raf) {
+        raf = requestAnimationFrame(tick);
+      } else if (!entry.isIntersecting && raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    });
+    running.observe(section);
 
     return () => {
       video.removeEventListener("error", onError);
@@ -180,7 +183,8 @@ export function useScrollScrub(
         }
         clearTimeout(idle);
       }
-      observer.disconnect();
+      prefetch.disconnect();
+      running.disconnect();
       if (raf) cancelAnimationFrame(raf);
     };
   }, [sectionRef, videoRef, src, liteSrc, poster, ease, minWidth]);
