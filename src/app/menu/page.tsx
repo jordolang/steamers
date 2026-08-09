@@ -5,13 +5,33 @@ import { MenuBoard } from "@/components/menu-board";
 import { AmbientVideo } from "@/components/ambient-video";
 import { OpenStatus } from "@/components/open-status";
 import { MENU_ITEM_COUNT } from "@/data/menu";
-import { SITE } from "@/data/site";
+import { SITE, OG_IMAGE } from "@/data/site";
+
+const MENU_DESCRIPTION =
+  "The full menu at Steamers Stonewall Tavern in North Lima, Ohio — steamed clams and mussels, king crab, char-grilled black angus, and Grandma D's red sauce. Current prices.";
 
 export const metadata: Metadata = {
   title: "Menu",
-  description:
-    "The full menu at Steamers Stonewall Tavern in North Lima, Ohio — steamed clams and mussels, king crab, char-grilled black angus, and Grandma D's red sauce. Current prices.",
+  description: MENU_DESCRIPTION,
   alternates: { canonical: "https://enjoysteamers.com/menu" },
+  // Without this the page would share the homepage's card copy verbatim. Note
+  // that declaring `openGraph` here discards the layout's entirely, so siteName,
+  // locale and the image have to be repeated.
+  openGraph: {
+    title: `The menu — ${MENU_ITEM_COUNT} dishes | ${SITE.name}`,
+    description: MENU_DESCRIPTION,
+    url: "https://enjoysteamers.com/menu",
+    siteName: SITE.name,
+    locale: "en_US",
+    type: "website",
+    images: [OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `The menu — ${MENU_ITEM_COUNT} dishes | ${SITE.name}`,
+    description: MENU_DESCRIPTION,
+    images: [OG_IMAGE],
+  },
 };
 
 export default function MenuPage() {

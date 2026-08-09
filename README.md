@@ -113,6 +113,33 @@ gained two first-class tokens as a result — `--color-neon-cyan` and
 
 The superseded renders were deleted rather than kept around.
 
+## The social card
+
+`site/public/og.jpg` — 1200×630, the size every scraper and validator expects.
+It is the business's own logo lockup over `entrance-arch.jpg`, cropped so the
+double neon arch lands in the right third and masked back to ink across the
+left so the type sits on a clean field. Everything on it is a fact from
+`src/data/site.ts`: North Lima, since 2003, 4.6 from 1,293 Google reviews,
+#1 of 11 on TripAdvisor, 64 dishes, and the phone number as the call to action
+— because the phone *is* the conversion here, there being nothing to book.
+
+Source template and rebuild instructions are in `site/design/og/`. It is a
+plain HTML page rendered by headless Chrome at 2× and downsampled, with the
+three site typefaces pinned locally so a font fallback can never quietly ship.
+`design/` is not under `public/`, so none of it is served.
+
+**`og:image` does not resolve against the canonical origin.** `enjoysteamers.com`
+is the restaurant's *existing* site, not this build, so a card URL pointing
+there would 404 on any preview and every validator would score the image as
+missing. `ASSET_ORIGIN` in `src/data/site.ts` resolves images against
+`NEXT_PUBLIC_SITE_URL` → `VERCEL_PROJECT_PRODUCTION_URL` → `VERCEL_URL` →
+canonical. Canonical and `og:url` stay pinned to `enjoysteamers.com` regardless.
+
+One gotcha worth knowing: Next replaces a parent's entire `openGraph` object
+when a child declares one. `/menu` sets its own title and description, so it
+also has to re-declare `siteName`, `locale` and the image. Hence `OG_IMAGE`
+living in `site.ts` rather than in the layout.
+
 ## Design
 
 Palette is sampled from the logo PNG rather than guessed — `#98001F → #C01030`,

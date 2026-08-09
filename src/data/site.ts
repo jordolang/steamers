@@ -27,6 +27,38 @@ export const SITE = {
   facebook: "https://www.facebook.com/steamersfan/",
 } as const;
 
+/** The one true address. Canonical and og:url always point here. */
+export const CANONICAL_ORIGIN = "https://enjoysteamers.com";
+
+/**
+ * Where `og:image` is resolved from. Deliberately *not* the canonical origin:
+ * enjoysteamers.com is the restaurant's existing site, so on a preview or any
+ * other deployment a card URL pointing there would 404 and every validator
+ * would score the image as missing. Resolve against whatever origin is
+ * actually serving, and fall back to canonical in production.
+ */
+export const ASSET_ORIGIN =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL &&
+    `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
+  (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
+  CANONICAL_ORIGIN;
+
+/**
+ * The 1200×630 social card. Source template and rebuild steps in `design/og/`.
+ *
+ * Next replaces a parent's whole `openGraph` object when a child declares one,
+ * so every page that sets `openGraph` has to spread this in itself — it is not
+ * inherited.
+ */
+export const OG_IMAGE = {
+  url: "/og.jpg",
+  width: 1200,
+  height: 630,
+  type: "image/jpeg",
+  alt: `${SITE.name} — the double neon arch over the entrance on Market Street, North Lima, Ohio. Seafood, pasta and steak, family-run since 2003. Call ${SITE.phone}.`,
+} as const;
+
 /**
  * Kitchen hours, exactly as published. Index 0 = Sunday (JS getDay order).
  * `null` means closed. Times are minutes from midnight, America/New_York.

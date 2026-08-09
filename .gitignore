@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# social card 2x master — regenerate from design/og/og.html
+/design/og/og@2x.png

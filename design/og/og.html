@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="fonts.css" />
+<style>
+  :root{
+    --ink:#0b0a09; --ink-2:#131010; --ink-3:#1d1917;
+    --carmine:#b00828; --carmine-bright:#c01030; --carmine-deep:#98001f;
+    --cyan:#35cdf2; --violet:#6f5ae8;
+    --ember:#e8a13c; --limestone:#c9c2b6; --dim:#8b847a; --steam:#f5f2ec;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1200px;height:630px;overflow:hidden;background:var(--ink)}
+  body{
+    font-family:"Archivo",system-ui,sans-serif;
+    color:var(--limestone);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .card{position:relative;width:1200px;height:630px;overflow:hidden;isolation:isolate}
+
+  /* ---- photographic ground: the double neon arch, the one thing that
+         identifies this building on sight. Cropped and placed so the arch
+         lands in the right third at full strength, then masked back to ink
+         across the left so the type sits on a clean field. ---- */
+  .photo{
+    position:absolute;inset:0;
+    background:url("../../public/media/poster/entrance-arch.jpg") 240px -32px / 1200px auto no-repeat;
+    filter:saturate(1.22) contrast(1.08) brightness(.92);
+    -webkit-mask-image:
+      linear-gradient(95deg, transparent 26%, rgba(0,0,0,.22) 40%, rgba(0,0,0,.72) 56%, #000 72%),
+      linear-gradient(to top, transparent 4%, rgba(0,0,0,.55) 20%, #000 46%);
+    -webkit-mask-composite:source-in;
+    mask-composite:intersect;
+  }
+  /* keeps the photo from ever competing with the headline */
+  .wash{
+    position:absolute;inset:0;
+    background:
+      linear-gradient(100deg, rgba(11,10,9,.94) 0%, rgba(11,10,9,.80) 40%, rgba(11,10,9,.30) 62%, rgba(11,10,9,0) 78%),
+      linear-gradient(to top, rgba(11,10,9,.95) 0%, rgba(11,10,9,.72) 16%, rgba(11,10,9,.30) 34%, rgba(11,10,9,0) 56%);
+  }
+  /* neon spill picked off the arch tubes */
+  .glow{
+    position:absolute;inset:0;
+    background:
+      radial-gradient(38% 50% at 74% 33%, rgba(53,205,242,.30), transparent 70%),
+      radial-gradient(46% 56% at 86% 22%, rgba(111,90,232,.26), transparent 72%),
+      radial-gradient(52% 60% at 0% 100%, rgba(176,8,40,.16), transparent 66%);
+  }
+  /* vignette so it reads shot, not composited */
+  .vignette{
+    position:absolute;inset:0;
+    box-shadow:inset 0 0 150px 34px rgba(11,10,9,.55);
+  }
+
+  /* carmine hairline across the top, the site's own accent */
+  .rule-top{
+    position:absolute;top:0;left:0;right:0;height:5px;
+    background:linear-gradient(90deg,var(--carmine-deep),var(--carmine-bright) 42%,var(--ember) 78%,var(--carmine-deep));
+  }
+
+  .inner{
+    position:relative;z-index:2;
+    height:100%;padding:58px 64px 54px;
+    display:flex;flex-direction:column;
+  }
+
+  /* ---- eyebrow ---- */
+  .eyebrow{
+    font-family:"DM Mono",ui-monospace,monospace;
+    font-size:16px;letter-spacing:.26em;text-transform:uppercase;
+    color:var(--dim);display:flex;align-items:center;gap:16px;
+  }
+  .pipe{color:var(--carmine-bright);font-weight:500}
+  .eyebrow .lit{color:var(--limestone)}
+
+  /* ---- logo ---- */
+  .logo{
+    margin-top:26px;
+    width:544px;height:auto;display:block;
+    filter:drop-shadow(0 10px 34px rgba(0,0,0,.72)) drop-shadow(0 0 26px rgba(176,8,40,.30));
+  }
+
+  /* ---- headline ---- */
+  .line{
+    margin-top:26px;
+    font-family:"Fraunces",Georgia,serif;
+    font-variation-settings:"SOFT" 20,"WONK" 1,"opsz" 96;
+    font-weight:600;
+    font-size:43px;line-height:1.05;letter-spacing:-.021em;
+    color:var(--steam);
+    max-width:646px;
+    text-shadow:0 2px 20px rgba(0,0,0,.65);
+  }
+  .line em{font-style:normal;color:var(--ember)}
+
+  .spacer{flex:1}
+
+  /* ---- credential strip ---- */
+  .strip{
+    display:flex;align-items:center;gap:26px;
+  }
+  .stat{display:flex;flex-direction:column;gap:5px}
+  .stat b{
+    font-family:"DM Mono",ui-monospace,monospace;
+    font-weight:500;font-size:23px;color:var(--steam);letter-spacing:-.01em;
+    display:flex;align-items:baseline;gap:7px;
+  }
+  .stat b .star{color:var(--ember);font-size:20px}
+  .stat span{
+    font-family:"DM Mono",ui-monospace,monospace;
+    font-size:12.5px;letter-spacing:.17em;text-transform:uppercase;color:var(--dim);
+  }
+  .div{width:1px;height:44px;background:var(--ink-3);
+       background:linear-gradient(to bottom,transparent,#2a2422 30%,#2a2422 70%,transparent)}
+
+  .cta{
+    margin-left:auto;
+    display:flex;align-items:center;gap:13px;
+    background:linear-gradient(180deg,var(--carmine-bright),var(--carmine-deep));
+    color:var(--steam);
+    padding:17px 30px;border-radius:999px;
+    font-family:"DM Mono",ui-monospace,monospace;
+    font-weight:500;font-size:22px;letter-spacing:.01em;
+    box-shadow:0 12px 34px rgba(152,0,31,.46), inset 0 1px 0 rgba(255,255,255,.20);
+    white-space:nowrap;
+  }
+  .cta small{
+    font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    opacity:.78;display:block;margin-bottom:2px;font-weight:400;
+  }
+  .cta .num{display:block;line-height:1.05}
+
+  /* domain, quiet, bottom-left under the strip */
+  .foot{
+    margin-top:20px;
+    display:flex;align-items:center;gap:14px;
+    font-family:"DM Mono",ui-monospace,monospace;
+    font-size:13.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);
+  }
+  .diamond{width:7px;height:7px;background:var(--carmine-bright);transform:rotate(45deg)}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="photo"></div>
+    <div class="wash"></div>
+    <div class="glow"></div>
+    <div class="vignette"></div>
+    <div class="rule-top"></div>
+
+    <div class="inner">
+      <p class="eyebrow">
+        <span class="lit">North Lima, Ohio</span>
+        <span class="pipe">|</span>
+        <span>Family-run since 2003</span>
+      </p>
+
+      <img class="logo" src="../../public/brand/steamers-logo.png" alt="" />
+
+      <h1 class="line">
+        Clams steamed at the bar.<br />Black angus over open flame.<br /><em>Grandma D&rsquo;s red sauce.</em>
+      </h1>
+
+      <div class="spacer"></div>
+
+      <div class="strip">
+        <div class="stat">
+          <b><span class="star">&#9733;</span>4.6</b>
+          <span>1,293 Google reviews</span>
+        </div>
+        <div class="div"></div>
+        <div class="stat">
+          <b>#1</b>
+          <span>of 11 &middot; TripAdvisor</span>
+        </div>
+        <div class="div"></div>
+        <div class="stat">
+          <b>64</b>
+          <span>dishes &middot; full bar &middot; patio</span>
+        </div>
+
+        <div class="cta">
+          <span>
+            <small>Takeout &amp; tables</small>
+            <span class="num">330-549-9041</span>
+          </span>
+        </div>
+      </div>
+
+      <p class="foot">
+        <span class="diamond"></span>
+        enjoysteamers.com
+        <span class="pipe">|</span>
+        10078 Market Street
+      </p>
+    </div>
+  </div>
+</body>
+</html>

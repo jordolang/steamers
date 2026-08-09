@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Archivo, DM_Mono } from "next/font/google";
-import { SITE } from "@/data/site";
+import { SITE, CANONICAL_ORIGIN, ASSET_ORIGIN, OG_IMAGE } from "@/data/site";
 import { MENU } from "@/data/menu";
 import "./globals.css";
 
@@ -28,7 +28,7 @@ const DESCRIPTION =
   "Seafood, pasta and steak on Market Street in North Lima, Ohio. Family-run since 2003 — clams and mussels steamed at the bar, char-grilled black angus, and Grandma D's red sauce.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://enjoysteamers.com"),
+  metadataBase: new URL(ASSET_ORIGIN),
   title: {
     default: `${SITE.name} | Seafood · Pasta · Steak | North Lima, Ohio`,
     template: `%s | ${SITE.name}`,
@@ -41,17 +41,36 @@ export const metadata: Metadata = {
     "steak restaurant Mahoning County",
     "banquet hall North Lima",
   ],
+  applicationName: SITE.name,
+  authors: [{ name: SITE.name, url: CANONICAL_ORIGIN }],
+  creator: SITE.name,
+  publisher: SITE.name,
+  category: "restaurant",
   openGraph: {
     title: `${SITE.name} — Seafood · Pasta · Steak`,
     description: DESCRIPTION,
-    url: "https://enjoysteamers.com",
+    url: CANONICAL_ORIGIN,
     siteName: SITE.name,
     locale: "en_US",
     type: "website",
+    images: [OG_IMAGE],
   },
-  twitter: { card: "summary_large_image", title: SITE.name, description: DESCRIPTION },
-  robots: { index: true, follow: true },
-  alternates: { canonical: "https://enjoysteamers.com" },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE.name} — Seafood · Pasta · Steak`,
+    description: DESCRIPTION,
+    images: [OG_IMAGE],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
+  alternates: { canonical: CANONICAL_ORIGIN },
+  icons: {
+    icon: [{ url: "/favicon.png", type: "image/png" }],
+    apple: [{ url: "/favicon.png" }],
+  },
 };
 
 export const viewport = {
@@ -78,7 +97,9 @@ const JSON_LD = {
   "@id": "https://enjoysteamers.com/#restaurant",
   name: SITE.name,
   description: DESCRIPTION,
-  url: "https://enjoysteamers.com",
+  url: CANONICAL_ORIGIN,
+  image: `${ASSET_ORIGIN}/og.jpg`,
+  logo: `${ASSET_ORIGIN}/brand/steamers-logo.png`,
   telephone: `+1-${SITE.phone}`,
   email: SITE.email,
   priceRange: "$$",
@@ -128,7 +149,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${fraunces.variable} ${archivo.variable} ${dmMono.variable}`}>
       <head>
-        <link rel="icon" href="/favicon.png" sizes="any" />
+        {/* Icons are declared in `metadata.icons`; no hand-written <link> here. */}
         <script
           type="application/ld+json"
           // Schema is built from the same verified data the page renders.
