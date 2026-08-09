@@ -130,11 +130,32 @@ leaders, it turns the menu into the thing the design is actually built around.
 
 ## Motion
 
-Two scroll-scrubbed pinned videos — the arrival across the wet lot toward the
-neon arches in the hero, and the steamer behind the bar — driven by `requestAnimationFrame` with an eased
-`currentTime` seek, gated by `IntersectionObserver` so the loop only runs on
-screen. Both source clips are encoded with a 6-frame GOP so seeking lands
-instantly; the ambient loops use a normal GOP.
+**The hero is a 24-second first-person walk-in**, and scroll is the transport.
+It opens in the parking lot at dusk, crosses the wet asphalt toward the neon
+arches, reaches the doors as they swing open, passes through the threshold as
+the cool blue night gives way to warm tungsten, and comes to rest looking
+across the main dining room. Scroll down and you walk in; scroll up and you
+walk back out to the lot, frame for frame.
+
+It was built as three keyframed segments — lot→doors, doors opening,
+threshold→dining room — each generated start-image-to-end-image so the camera
+genuinely travels between two known frames rather than drifting. The segments
+are then normalised to identical parameters and stitched with half-second
+crossfades at the joins.
+
+The scrub itself is `requestAnimationFrame` with an eased `currentTime` seek,
+gated by `IntersectionObserver` so the loop only runs while the hero is on
+screen. Scroll position maps linearly onto video time, which is what makes the
+rewind free. Verified end to end: 0% → 0.00s, 50% → 11.51s, 100% → 23.54s, and
+back to 0.01s on return to the top.
+
+Encoding matters here. The hero and the steamer clip both use a **6-frame GOP**
+(97 keyframes across 24s) so any scroll position lands on a seekable frame
+instead of waiting on the next I-frame; the ambient loops use a normal GOP.
+
+The hero section is ~4,200px tall — three panels with 60svh of breathing room
+between them — so 24 seconds of footage advances at a reading pace rather than
+racing past. Each panel is a beat of the journey: outside, at the door, inside.
 
 Everything else is `IntersectionObserver` reveals, one-shot.
 

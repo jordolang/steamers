@@ -8,9 +8,14 @@ import { SITE } from "@/data/site";
 const DEFAULT_NAV_HEIGHT = 68;
 
 /**
+ * The hero footage is a 24-second first-person walk-in: across the wet lot,
+ * up to the doors, through them as they open, and to rest in the dining room.
+ * Scroll position drives `currentTime` directly, so scrolling down advances
+ * the walk and scrolling back up reverses it all the way to the parking lot.
+ *
  * Panels scroll up over the pinned footage in normal document flow, so the
  * page reads as a page rather than a paused viewport. One panel per beat of
- * the push-in toward the front door.
+ * the journey — outside, at the door, inside.
  */
 const PANELS = [
   {
@@ -141,8 +146,8 @@ export function ScrollVideoHero() {
       >
         <video
           ref={videoRef}
-          src="/media/video/exterior-arrival.mp4"
-          poster="/media/poster/exterior-arrival.jpg"
+          src="/media/video/walk-in.mp4"
+          poster="/media/poster/walk-in.jpg"
           muted
           playsInline
           preload="none"
@@ -170,14 +175,20 @@ export function ScrollVideoHero() {
         </div>
       </div>
 
-      {/* One full screen per panel, plus a short tail so the push-in finishes
-          before the next section arrives. */}
+      {/* One full screen per panel, with a breath between them. The walk-in is
+          ~25s, so the section needs roughly five screens of scroll for the
+          footage to advance at a natural reading pace rather than racing. */}
       <div className="relative z-10">
         {PANELS.map((panel, i) => (
           <div
             key={panel.title}
             className="flex items-center px-5 sm:px-10 lg:px-20"
-            style={{ minHeight: "calc(100svh - var(--nav-offset))" }}
+            style={{
+              minHeight: "calc(100svh - var(--nav-offset))",
+              // Space after the first two panels lets the camera cover ground
+              // between beats — approaching, then the doors, then the room.
+              marginBottom: i < PANELS.length - 1 ? "60svh" : undefined,
+            }}
           >
             <div className="max-w-2xl on-film">
               <p className="eyebrow mb-5 text-steam/75">
@@ -234,7 +245,9 @@ export function ScrollVideoHero() {
             </div>
           </div>
         ))}
-        <div aria-hidden style={{ height: "calc((100svh - var(--nav-offset)) * 0.5)" }} />
+        {/* Tail so the camera finishes settling in the dining room before the
+            next section scrolls up over it. */}
+        <div aria-hidden style={{ height: "calc((100svh - var(--nav-offset)) * 0.8)" }} />
       </div>
     </section>
   );
