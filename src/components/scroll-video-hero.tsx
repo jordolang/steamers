@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { SITE } from "@/data/site";
 
@@ -190,7 +191,11 @@ export function ScrollVideoHero() {
               marginBottom: i < PANELS.length - 1 ? "60svh" : undefined,
             }}
           >
-            <div className="max-w-2xl on-film">
+            {/* A flex item defaults to min-width:auto, which lets a wide
+                replaced child set the floor for the whole column. `min-w-0`
+                keeps the wordmark shrinking with the viewport rather than
+                deciding how narrow this column is allowed to get. */}
+            <div className="w-full min-w-0 max-w-2xl on-film">
               <p className="eyebrow mb-5 text-steam/75">
                 {panel.eyebrow.map((word, j) => (
                   <span key={word}>
@@ -208,9 +213,23 @@ export function ScrollVideoHero() {
                     aria-hidden
                     className="arch arch-lit mb-5 w-32 sm:mb-6 sm:w-40"
                   />
-                  <h1 id="hero-title" className="display-xl">
-                    {panel.title}
-                    <span className="mt-2 block text-[0.34em] leading-tight tracking-[0.01em] text-carmine-bright sm:mt-1 sm:text-[0.42em]">
+                  {/* The wordmark itself, not type set to imitate it: the
+                      business's own lockup with the steam rising out of the M,
+                      cropped above the SEAFOOD · PASTA · STEAK rule so the
+                      tagline isn't said twice — the eyebrow already says it.
+                      `alt` carries "Steamers", so the h1 still reads
+                      "Steamers Stonewall Tavern" to a screen reader. */}
+                  <h1 id="hero-title">
+                    <Image
+                      src="/brand/steamers-wordmark.png"
+                      alt={panel.title}
+                      width={2770}
+                      height={987}
+                      priority
+                      sizes="(max-width: 639px) 92vw, 38rem"
+                      className="h-auto w-full max-w-[30rem] drop-shadow-[0_6px_30px_rgba(0,0,0,0.7)] sm:max-w-[38rem]"
+                    />
+                    <span className="display-md mt-4 block sm:mt-5">
                       {panel.accent}
                     </span>
                   </h1>
