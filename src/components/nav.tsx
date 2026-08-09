@@ -47,6 +47,9 @@ export function Nav() {
             width={2877}
             height={1257}
             priority
+            // Without this Next has only the intrinsic 2877px to go on and
+            // asks for the 3840 variant — 67 KB for a mark drawn 36px tall.
+            sizes="120px"
             className="h-9 w-auto sm:h-10"
           />
         </Link>

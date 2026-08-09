@@ -334,6 +334,7 @@ export function Footer() {
               alt={SITE.name}
               width={2877}
               height={1257}
+              sizes="160px"
               className="h-12 w-auto"
             />
             <p className="eyebrow mt-5">

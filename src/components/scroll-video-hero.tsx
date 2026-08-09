@@ -2,25 +2,22 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { SITE } from "@/data/site";
+import { useScrollScrub } from "./use-scroll-scrub";
 
 /** Nav height; measured at runtime because it shrinks once you scroll. */
 const DEFAULT_NAV_HEIGHT = 68;
 
 /**
- * The hero footage is a 30-second first-person walk-in that follows the real
- * route through the building: across the wet lot, up to the doors, through
- * them into the little slate-floored vestibule, through the second set of oak
- * doors as they open, into the bar room, and finally a turn to the left to
- * settle on the bar — the view a guest actually gets from the hostess station.
- * Scroll position drives `currentTime` directly, so scrolling down advances
- * the walk and scrolling back up reverses it all the way to the parking lot.
- *
- * Panels scroll up over the pinned footage in normal document flow, so the
- * page reads as a page rather than a paused viewport. One panel per beat of
- * the journey — the lot, the door, the threshold, the bar.
+ * Two encodes of the same 30-second cut. The scrub needs a very short GOP to
+ * stay seekable, which is expensive, so the file is deliberately smaller than
+ * the screen it fills — behind the scrim and the vignette, at `object-cover`,
+ * 720p is indistinguishable from 1080p and costs less than half as much.
  */
+const SCRUB_FULL = "/media/video/walk-in.mp4"; // 1280×720, 5.3 MB
+const SCRUB_LITE = "/media/video/walk-in-lite.mp4"; // 854×480, 2.3 MB
+
 const PANELS = [
   {
     eyebrow: ["Seafood", "Pasta", "Steak"],
@@ -54,14 +51,10 @@ export function ScrollVideoHero() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const cueRef = useRef<HTMLDivElement>(null);
 
+  /** The nav shrinks once you scroll, so its height is measured, not assumed. */
   useEffect(() => {
     const section = sectionRef.current;
-    const video = videoRef.current;
-    if (!section || !video) return;
-
-    // Wake the decoder so the first seek paints immediately — iOS Safari
-    // ignores currentTime on a video it has never started.
-    video.play().then(() => video.pause()).catch(() => {});
+    if (!section) return;
 
     const measureNav = () => {
       const nav = document.querySelector("header");
@@ -72,70 +65,27 @@ export function ScrollVideoHero() {
     };
     measureNav();
     window.addEventListener("resize", measureNav);
-
-    // Two opt-outs, both of which leave the poster standing in:
-    //  - reduced motion, by request
-    //  - narrow screens, because frame-accurate seeking is unreliable on iOS
-    //    Safari and the scrub-encoded file is far too heavy to push at a phone
-    //    on cellular. A sharp still beats a stuttering download.
-    const optOut =
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-      window.matchMedia("(max-width: 767px)").matches;
-
-    if (optOut) {
-      video.removeAttribute("src");
-      video.load();
-      return () => window.removeEventListener("resize", measureNav);
-    }
-
-    video.preload = "auto";
-
-    let raf = 0;
-    let scrubbed = 0;
-
-    const tick = () => {
-      const rect = section.getBoundingClientRect();
-      const range = rect.height - window.innerHeight;
-      const progress = range > 0 ? Math.min(Math.max(-rect.top / range, 0), 1) : 0;
-
-      if (video.duration) {
-        const target = progress * video.duration;
-        // Ease toward the target so a flick of the wheel reads as motion
-        // rather than a jump cut.
-        scrubbed += (target - scrubbed) * 0.12;
-        // Only seek past a frame's worth of drift; seeking every frame
-        // thrashes the decoder.
-        if (Math.abs(video.currentTime - scrubbed) > 1 / 48) {
-          video.currentTime = scrubbed;
-        }
-      }
-
-      if (cueRef.current) {
-        cueRef.current.style.opacity = String(
-          Math.min(Math.max((0.08 - progress) / 0.06, 0), 1),
-        );
-      }
-
-      raf = requestAnimationFrame(tick);
-    };
-
-    // Only run the loop while the hero is actually on screen.
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !raf) {
-        raf = requestAnimationFrame(tick);
-      } else if (!entry.isIntersecting && raf) {
-        cancelAnimationFrame(raf);
-        raf = 0;
-      }
-    });
-    observer.observe(section);
-
-    return () => {
-      window.removeEventListener("resize", measureNav);
-      observer.disconnect();
-      if (raf) cancelAnimationFrame(raf);
-    };
+    return () => window.removeEventListener("resize", measureNav);
   }, []);
+
+  /** Fade the "Scroll" cue out as soon as the walk starts moving. */
+  const onProgress = useCallback((progress: number) => {
+    if (!cueRef.current) return;
+    cueRef.current.style.opacity = String(
+      Math.min(Math.max((0.08 - progress) / 0.06, 0), 1),
+    );
+  }, []);
+
+  // Below 768px the footage is never fetched and the poster stands in:
+  // frame-accurate seeking is unreliable on iOS Safari, and a scrub-encoded
+  // file is too heavy to push at a phone on cellular for an effect that may
+  // stutter anyway. A sharp still wins.
+  useScrollScrub(sectionRef, videoRef, {
+    src: SCRUB_FULL,
+    liteSrc: SCRUB_LITE,
+    minWidth: 768,
+    onProgress,
+  });
 
   return (
     <section
@@ -154,9 +104,12 @@ export function ScrollVideoHero() {
           marginBottom: "calc((100svh - var(--nav-offset)) * -1)",
         }}
       >
+        {/* No `src` here on purpose — the client attaches one only after it
+            has measured the connection and the main thread has gone quiet.
+            Until then this is just the poster, which the preload scanner
+            picks up in the first round trip. */}
         <video
           ref={videoRef}
-          src="/media/video/walk-in.mp4"
           poster="/media/poster/walk-in.jpg"
           muted
           playsInline

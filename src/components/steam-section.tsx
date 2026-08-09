@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
+import { useScrollScrub } from "./use-scroll-scrub";
 
 /**
  * The section that explains the name. A second scroll-scrubbed clip — the
@@ -8,54 +9,22 @@ import { useEffect, useRef } from "react";
  * brand is a machine that makes vapour, and reading about it while it does so
  * is the point.
  *
- * Same scrub mechanism as the hero, kept local so the two can be tuned apart.
+ * Same scrub mechanism as the hero — shared, so the buffer gating and the
+ * deferred fetch only had to be got right once. Only the chase is tuned apart.
  */
+const SCRUB_FULL = "/media/video/steamer.mp4"; // 1280×720, 1.9 MB
+const SCRUB_LITE = "/media/video/steamer-lite.mp4"; // 854×480, 0.9 MB
+
 export function SteamSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  useEffect(() => {
-    const section = sectionRef.current;
-    const video = videoRef.current;
-    if (!section || !video) return;
-
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    video.play().then(() => video.pause()).catch(() => {});
-
-    let raf = 0;
-    let scrubbed = 0;
-
-    const tick = () => {
-      const rect = section.getBoundingClientRect();
-      const range = rect.height - window.innerHeight;
-      const progress = range > 0 ? Math.min(Math.max(-rect.top / range, 0), 1) : 0;
-
-      if (video.duration) {
-        const target = progress * video.duration;
-        scrubbed += (target - scrubbed) * 0.1;
-        if (Math.abs(video.currentTime - scrubbed) > 1 / 48) {
-          video.currentTime = scrubbed;
-        }
-      }
-      raf = requestAnimationFrame(tick);
-    };
-
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !raf) {
-        raf = requestAnimationFrame(tick);
-      } else if (!entry.isIntersecting && raf) {
-        cancelAnimationFrame(raf);
-        raf = 0;
-      }
-    });
-    observer.observe(section);
-
-    return () => {
-      observer.disconnect();
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
+  useScrollScrub(sectionRef, videoRef, {
+    src: SCRUB_FULL,
+    liteSrc: SCRUB_LITE,
+    poster: "/media/poster/steamer.jpg",
+    ease: 0.1,
+  });
 
   return (
     <section
@@ -65,13 +34,14 @@ export function SteamSection() {
       className="relative isolate scroll-mt-[68px] bg-ink"
     >
       <div className="sticky top-0 h-svh overflow-hidden" style={{ marginBottom: "-100svh" }}>
+        {/* No `src` here on purpose — the hook attaches one once this section
+            is within a screen of the viewport and the main thread is quiet, so
+            nothing three screens down competes with the first paint. */}
         <video
           ref={videoRef}
-          src="/media/video/steamer.mp4"
-          poster="/media/poster/steamer.jpg"
           muted
           playsInline
-          preload="metadata"
+          preload="none"
           aria-hidden
           tabIndex={-1}
           className="pointer-events-none absolute inset-0 size-full select-none object-cover"

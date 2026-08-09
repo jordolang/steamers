@@ -6,10 +6,15 @@ import { useEffect, useRef } from "react";
  * A looping background clip that only ever decodes while it is on screen.
  *
  * Restaurant traffic is overwhelmingly mobile-on-cellular, so the defaults are
- * deliberately conservative: `preload="none"`, the poster carries the first
- * paint, and the source is attached only once the element approaches the
- * viewport. Off-screen clips are paused so a long page never runs eight
- * decoders at once.
+ * deliberately conservative: nothing at all is fetched until the element
+ * approaches the viewport, and off-screen clips are paused so a long page
+ * never runs eight decoders at once.
+ *
+ * The `poster` is attached in JS for the same reason the source is. A `poster`
+ * attribute in the markup is picked up by the preload scanner and fetched
+ * immediately no matter how far down the page it sits, and with ten of these
+ * on the homepage that was a megabyte of stills competing with the first
+ * screen. Deferred, they cost nothing until you are nearly looking at them.
  */
 export function AmbientVideo({
   src,
@@ -26,29 +31,32 @@ export function AmbientVideo({
     const video = ref.current;
     if (!video) return;
 
-    // Reduced motion keeps the poster and never fetches the video at all.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Reduced motion still gets the still, just never the clip behind it.
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          if (!video.poster) video.poster = poster;
+          if (still) return;
           if (!video.src) video.src = src;
           video.play().catch(() => {});
         } else {
           video.pause();
         }
       },
-      { rootMargin: "200px" },
+      // A screen and a half of lead time, so the still has landed and painted
+      // before the clip is anywhere near being looked at.
+      { rootMargin: "600px" },
     );
 
     observer.observe(video);
     return () => observer.disconnect();
-  }, [src]);
+  }, [src, poster]);
 
   return (
     <video
       ref={ref}
-      poster={poster}
       muted
       loop
       playsInline
