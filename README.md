@@ -32,7 +32,7 @@ Everything on the page traces to a source in `research/RESEARCH.md`.
 | Patio, banquet room, live music, takeout | Explore Mahoning, BBB, Restaurantji |
 | Job titles (Server, Hostess, Line Cook, Prep Cook) | Indeed company profile |
 | Logo, favicon, diamond ornament | The business's own asset files |
-| Building, patio, bar, signage | 18 owner-supplied photographs in `public/img/location/` |
+| Building, patio, bar, entry, signage | 21 owner-supplied photographs in `public/img/location/` |
 
 **Prices are current.** `allmenus.com` and SinglePlatform both mirror a ~2019
 price list roughly 35% lower. Those were deliberately not used.
@@ -89,7 +89,7 @@ recording as a caution: with no photographs available, they were inferred from
 text — "Stonewall" plus "unassuming" produced a grey-fieldstone cottage under a
 moody sky. Nothing like the real building.
 
-Eighteen owner-supplied photographs later corrected it. What Steamers actually
+Twenty-one owner-supplied photographs later corrected it. What Steamers actually
 looks like:
 
 - A long, low roadside building — **tan honey ledgestone**, **cream stucco**,
@@ -102,6 +102,10 @@ looks like:
 - Inside: an **ornate pressed-tin ceiling**, an **octagonal golden-oak bar**
   under a TV soffit, a red-orange **STEAMERS neon** with the flame logo, amber
   dome pendants and lantern sconces, brown vinyl swivel stools, brass rails
+- The entry is **two door sets with a vestibule between them** — maroon glass
+  storefront doors outside, then a small landing of oxblood walls, oak beadboard
+  wainscot, a stained-glass window and slate tile, then oak raised-panel doors
+  with brass pulls into the room
 - A black **pylon sign** on Market Street with an LED message board
 - Staff uniform: **black tee with the Steamers logo**
 
@@ -157,38 +161,51 @@ leaders, it turns the menu into the thing the design is actually built around.
 
 ## Motion
 
-**The hero is a 24-second first-person walk-in**, and scroll is the transport.
+**The hero is a 30-second first-person walk-in**, and scroll is the transport.
 It opens in the parking lot at dusk, crosses the wet asphalt toward the neon
-arches, reaches the doors as they swing open, passes through the threshold as
-the cool blue night gives way to warm tungsten, and comes to rest looking
-across the main dining room. Scroll down and you walk in; scroll up and you
-walk back out to the lot, frame for frame.
+arches, reaches the doors as they swing open, passes through them into the
+little slate-floored vestibule, waits as the second set of oak doors opens on
+the room, steps through, and turns left to come to rest on the bar. Scroll down
+and you walk in; scroll up and you walk back out to the lot, frame for frame.
 
-It was built as three keyframed segments — lot→doors, doors opening,
-threshold→dining room — each generated start-image-to-end-image so the camera
-genuinely travels between two known frames rather than drifting. The segments
-are then normalised to identical parameters and stitched with half-second
-crossfades at the joins.
+**The route is the building's actual route**, not a straight dolly. There are
+two door sets at Steamers with an entry vestibule between them, and from just
+inside the inner doors what you are looking at is the octagonal bar — not a
+dining room. An earlier cut walked straight through into a generic room of
+booths and tables, which is the wrong room. Four owner photographs fixed it:
+the vestibule, the bar room down its length, and two of the bar itself from the
+hostess station. Every interior keyframe is image-to-image from one of those.
+
+It is built as five keyframed segments — lot→doors, doors→vestibule,
+inner doors opening, through into the room, and a pan left onto the bar — each
+generated start-image-to-end-image so the camera genuinely travels between two
+known frames rather than drifting. The segments are normalised to identical
+parameters and stitched with half-second crossfades at the joins.
 
 The scrub itself is `requestAnimationFrame` with an eased `currentTime` seek,
 gated by `IntersectionObserver` so the loop only runs while the hero is on
-screen. Scroll position maps linearly onto video time, which is what makes the
-rewind free. Verified end to end: 0% → 0.00s, 50% → 11.51s, 100% → 23.54s, and
-back to 0.01s on return to the top.
+screen. Scroll position maps linearly onto `video.duration`, which is what makes
+the rewind free and what lets the footage change length without touching the
+scrub: 0% → 0.00s, 50% → 14.83s, 100% → 29.67s.
 
 Encoding matters here. The hero and the steamer clip both use a **6-frame GOP**
-(97 keyframes across 24s) so any scroll position lands on a seekable frame
-instead of waiting on the next I-frame; the ambient loops use a normal GOP.
+(119 keyframes across 30s, one every quarter-second) so any scroll position
+lands on a seekable frame instead of waiting on the next I-frame; the ambient
+loops use a normal GOP. A 6-frame GOP is expensive, and the interior beats are
+far busier than the dusk exterior — pressed tin, neon, a dozen live TVs — so the
+hero is two-pass VBR at 3400 kb/s rather than CRF, which holds 30 seconds of
+1080p to 12.6 MB, about what the old 24-second cut cost.
 
-The hero section is ~4,200px tall — three panels with 60svh of breathing room
-between them — so 24 seconds of footage advances at a reading pace rather than
-racing past. Each panel is a beat of the journey: outside, at the door, inside.
+The hero section is ~6.6 screens tall — four panels with 60svh of breathing room
+between them — so 30 seconds of footage advances at a reading pace rather than
+racing past. Each panel is a beat of the journey: the lot, the door, the
+threshold, the bar.
 
 Everything else is `IntersectionObserver` reveals, one-shot.
 
 The hero scrub is **desktop-only**. Below 768px the video is never fetched and
 the poster stands in: frame-accurate `currentTime` seeking is unreliable on iOS
-Safari, and pushing a 5.5 MB scrub-encoded file at a phone on cellular to power
+Safari, and pushing a 12.6 MB scrub-encoded file at a phone on cellular to power
 an effect that may stutter anyway is a bad trade. A sharp still wins.
 
 Performance guards, because restaurant traffic is mobile-on-cellular:
@@ -202,7 +219,7 @@ scrubs and no video is fetched at all.
 Generated with Higgsfield: stills via `nano_banana_pro`, animated with
 `kling3_0` (image-to-video, silent). Prompts were written from the restaurant's
 own ingredient lists and verified building description, then transcoded locally
-with ffmpeg. Shipped media is ~18 MB video/posters + 13 MB dish images; the
+with ffmpeg. Shipped media is ~26 MB video/posters + 13 MB dish images; the
 546 MB PNG masters stay out of the bundle at `public/img/menu/`.
 
 ## Known gaps
@@ -219,3 +236,8 @@ with ffmpeg. Shipped media is ~18 MB video/posters + 13 MB dish images; the
 - Careers lists real role titles from the Indeed profile but no live openings —
   none are published anywhere.
 - Real photography should replace generated imagery wherever it exists.
+- Two things in the reference photographs were deliberately left out of the
+  walk-in: the acrylic table dividers and the vestibule's Christmas tree. Both
+  are removable and dated — furniture, not architecture — and a tree would put
+  a season on a hero that has to run all year. Everything structural in those
+  photographs was kept.

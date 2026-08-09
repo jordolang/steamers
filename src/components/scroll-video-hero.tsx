@@ -9,14 +9,17 @@ import { SITE } from "@/data/site";
 const DEFAULT_NAV_HEIGHT = 68;
 
 /**
- * The hero footage is a 24-second first-person walk-in: across the wet lot,
- * up to the doors, through them as they open, and to rest in the dining room.
+ * The hero footage is a 30-second first-person walk-in that follows the real
+ * route through the building: across the wet lot, up to the doors, through
+ * them into the little slate-floored vestibule, through the second set of oak
+ * doors as they open, into the bar room, and finally a turn to the left to
+ * settle on the bar — the view a guest actually gets from the hostess station.
  * Scroll position drives `currentTime` directly, so scrolling down advances
  * the walk and scrolling back up reverses it all the way to the parking lot.
  *
  * Panels scroll up over the pinned footage in normal document flow, so the
  * page reads as a page rather than a paused viewport. One panel per beat of
- * the journey — outside, at the door, inside.
+ * the journey — the lot, the door, the threshold, the bar.
  */
 const PANELS = [
   {
@@ -28,6 +31,12 @@ const PANELS = [
   },
   {
     eyebrow: ["North Lima", "Ohio", "Est. 2003"],
+    title: "A Cheers-like atmosphere,",
+    accent: "where the dress is casual.",
+    body: "Josh DeNapoli's own words for the room his family remodeled in 2003. In off Market Street, through the landing, and the bar is the first thing you see.",
+  },
+  {
+    eyebrow: ["Shrimp", "Mussels", "Clams"],
     title: "Named for the",
     accent: "steamer behind the bar",
     body: "Clams, mussels and shrimp go into it to order. It has been running since the doors opened, and it is still the first thing you hear from a seat at the bar.",
@@ -177,8 +186,9 @@ export function ScrollVideoHero() {
       </div>
 
       {/* One full screen per panel, with a breath between them. The walk-in is
-          ~25s, so the section needs roughly five screens of scroll for the
-          footage to advance at a natural reading pace rather than racing. */}
+          ~30s, so the section needs roughly six and a half screens of scroll
+          for the footage to advance at a natural reading pace rather than
+          racing — four panels, three 60svh gaps, and the tail below. */}
       <div className="relative z-10">
         {PANELS.map((panel, i) => (
           <div
@@ -186,8 +196,8 @@ export function ScrollVideoHero() {
             className="flex items-center px-5 sm:px-10 lg:px-20"
             style={{
               minHeight: "calc(100svh - var(--nav-offset))",
-              // Space after the first two panels lets the camera cover ground
-              // between beats — approaching, then the doors, then the room.
+              // Space between panels lets the camera cover ground between
+              // beats — the lot, the door, the threshold, the bar.
               marginBottom: i < PANELS.length - 1 ? "60svh" : undefined,
             }}
           >
@@ -264,8 +274,8 @@ export function ScrollVideoHero() {
             </div>
           </div>
         ))}
-        {/* Tail so the camera finishes settling in the dining room before the
-            next section scrolls up over it. */}
+        {/* Tail so the camera finishes its turn onto the bar before the next
+            section scrolls up over it. */}
         <div aria-hidden style={{ height: "calc((100svh - var(--nav-offset)) * 0.8)" }} />
       </div>
     </section>
