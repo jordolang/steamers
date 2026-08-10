@@ -186,15 +186,20 @@ The scrub itself is `requestAnimationFrame` with an eased `currentTime` seek,
 gated by `IntersectionObserver` so the loop only runs while the hero is on
 screen. Scroll position maps linearly onto `video.duration`, which is what makes
 the rewind free and what lets the footage change length without touching the
-scrub: 0% → 0.00s, 50% → 14.83s, 100% → 29.67s.
+scrub — the endpoints clamp exactly (0% → 0.00s, 100% → 29.67s) and everything
+between falls out of the ratio. The intermediate checkpoints this file used to
+quote were browser measurements, not arithmetic: the sticky offset and the tail
+put scroll-midpoint a few percent off the timeline midpoint. Re-measure them
+rather than computing them.
 
 Encoding matters here. The hero and the steamer clip both use a **6-frame GOP**
 (119 keyframes across 30s, one every quarter-second) so any scroll position
 lands on a seekable frame instead of waiting on the next I-frame; the ambient
-loops use a normal GOP. A 6-frame GOP is expensive, and the interior beats are
-far busier than the dusk exterior — pressed tin, neon, a dozen live TVs — so the
-hero is two-pass VBR at 3400 kb/s rather than CRF, which holds 30 seconds of
-1080p to 12.6 MB, about what the old 24-second cut cost.
+loops use a normal GOP. A short GOP is expensive, and the interior beats are far
+busier than the dusk exterior — pressed tin, neon, a dozen live TVs — so the
+hero is two-pass VBR rather than CRF, and is encoded **smaller than the screen
+it fills**: behind the scrim and the vignette, at `object-cover`, 720p is
+indistinguishable from 1080p and costs less than half as much.
 
 The hero section is ~6.6 screens tall — four panels with 60svh of breathing room
 between them — so 30 seconds of footage advances at a reading pace rather than
@@ -203,23 +208,61 @@ threshold, the bar.
 
 Everything else is `IntersectionObserver` reveals, one-shot.
 
+## Nothing is fetched during the page load
+
+Restaurant traffic is mobile-on-cellular and phone tethering is common, so the
+homepage was tuned against a link that cannot be assumed. The first version
+shipped ~18 MB of media concurrent with the first paint and it showed: the hero
+stuttered, the picture blanked mid-scroll, and the page read as broken rather
+than as loading.
+
+Four things fixed it, in order of how much they mattered.
+
+**Seeks are clamped to what has downloaded.** This is the one that matters.
+Asking for a frame past the buffered edge is what makes scrub-on-scroll look
+broken on a slow link — the picture blanks, or snaps back to the last decoded
+frame. Clamped, the footage holds at the buffered edge and then runs forward to
+catch up as more arrives, which reads as film rather than fault. The scrub also
+skips any seek issued while the previous one is still running, because the
+dropped seek *is* the stutter.
+
+**No `src`, and no `poster`, in the markup.** Both are fetched by the preload
+scanner however far down the page they sit. Ten ambient clips meant a megabyte
+of stills competing with the first screen for a reader who might never scroll
+that far. Sources and posters are now attached in JS when the section comes
+within reach, and the scrubbed footage waits for `requestIdleCallback` on top of
+that. A cold homepage load is **~490 KB before any video starts** — markup,
+scripts, fonts, the logo and one poster; the hero then streams in behind a page
+that is already up and readable.
+
+**Two encodes, chosen by measuring the link.** `navigator.connection` gives the
+browser's own throughput estimate; under ~2.5 Mbit/s, or on 3G, the smaller cut
+is served, and under Save-Data or 2G nothing is fetched and the poster stands
+in. Both encodes are the same 30 seconds — 1280×720 / 5.3 MB and 854×480 /
+2.3 MB — so the scrub arithmetic does not care which one arrives.
+
+**Nothing asks for more pixels than it draws.** The nav logo was being served at
+3840px wide for a mark rendered 36px tall, because a Next `<Image>` with no
+`sizes` has only the intrinsic width to go on.
+
+Both scrubbed sections share one `useScrollScrub` hook, so the buffer gating and
+the deferred fetch only had to be got right once.
+
 The hero scrub is **desktop-only**. Below 768px the video is never fetched and
 the poster stands in: frame-accurate `currentTime` seeking is unreliable on iOS
-Safari, and pushing a 12.6 MB scrub-encoded file at a phone on cellular to power
-an effect that may stutter anyway is a bad trade. A sharp still wins.
+Safari, and pushing a scrub-encoded file at a phone on cellular to power an
+effect that may stutter anyway is a bad trade. A sharp still wins.
 
-Performance guards, because restaurant traffic is mobile-on-cellular:
-`preload="none"` on ambient clips with the source attached only near the
-viewport, off-screen clips paused, poster frames on every video, lazy-loaded
-dish images, and `prefers-reduced-motion` honoured — under which nothing
-scrubs and no video is fetched at all.
+`prefers-reduced-motion` is honoured throughout — nothing scrubs, nothing
+autoplays, and no video is fetched at all; the stills still load.
 
 ## Media
 
 Generated with Higgsfield: stills via `nano_banana_pro`, animated with
 `kling3_0` (image-to-video, silent). Prompts were written from the restaurant's
 own ingredient lists and verified building description, then transcoded locally
-with ffmpeg. Shipped media is ~26 MB video/posters + 13 MB dish images; the
+with ffmpeg. Shipped media is ~16 MB video/posters + 13 MB dish images, of
+which a first visit touches well under a megabyte; the
 546 MB PNG masters stay out of the bundle at `public/img/menu/`.
 
 ## Known gaps
