@@ -253,6 +253,24 @@ in. Both encodes are the same 30 seconds — 1280×720 / 5.3 MB and 854×480 /
 3840px wide for a mark rendered 36px tall, because a Next `<Image>` with no
 `sizes` has only the intrinsic width to go on.
 
+A `sizes` hint alone does not finish the job, because the browser can only pick
+a width the ladder offers, and Next's default steps 128 → 256. The mark is
+2.29:1, so `h-9`/`h-10` draw it 83/92 CSS px wide — 145 device px on the 1.75×
+screen Lighthouse emulates, which rounds up to the 256 variant. Two extra
+`imageSizes` entries (160, 192) and a `sizes` that states the real drawn width
+put it on 160 instead: 7.1 KB → 5.0 KB as AVIF, for an image preloaded from the
+head alongside the LCP still. It is the difference between "ask for the right
+size" and "have a right size to ask for".
+
+`browserslist` in `package.json` pins Chrome/Edge/Firefox 111 and Safari 16.4 —
+which is exactly what Next already defaults to, so it changes nothing about the
+output today. Verified rather than assumed: clean builds with and without it
+produce a byte-identical 40,352-byte stylesheet, and Lighthouse's legacy-
+JavaScript audit reports zero items either way. It is there so the target is
+stated rather than inherited, and cannot be widened by a dependency that ships
+its own browserslist. The one untranspiled bundle in the build is Next's
+`nomodule` core-js chunk, which no browser in that list downloads.
+
 Both scrubbed sections share one `useScrollScrub` hook, so the buffer gating and
 the deferred fetch only had to be got right once.
 

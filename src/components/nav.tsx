@@ -51,7 +51,10 @@ export function Nav() {
             preload
             // Without this Next has only the intrinsic 2877px to go on and
             // asks for the 3840 variant — 67 KB for a mark drawn 36px tall.
-            sizes="120px"
+            // The mark is 2.29:1, so h-9/h-10 draw it 83/92 px wide; saying so
+            // rather than a round 120px keeps a 1.75x screen off the 256
+            // variant, which is the one a 120px hint rounds up to.
+            sizes="(min-width: 640px) 92px, 83px"
             className="h-9 w-auto sm:h-10"
           />
         </Link>
