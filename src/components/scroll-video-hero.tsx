@@ -131,11 +131,13 @@ export function ScrollVideoHero() {
 
             This element fills the viewport, so it is the LCP on every screen
             size — and a `poster` is the worst possible way to serve an LCP.
-            The preload scanner will not hint it, it cannot carry a `srcset`,
-            and it is fetched at whatever priority the video element gets
-            around to. As an `<Image>` it is preloaded from the document head
-            at high priority, served AVIF, and sized to the screen asking for
-            it: ~10 KB on a phone instead of a 74 KB JPEG.
+            The preload scanner does find it (it reads `poster` out of the
+            markup), but it is fetched at low priority behind everything else,
+            and the attribute can carry neither a `srcset` nor a
+            `fetchpriority` — so it shipped one 74 KB JPEG at that size to
+            every screen. As an `<Image>` it is preloaded from the document
+            head at high priority, served AVIF, and sized to the screen asking
+            for it: ~10 KB on a phone.
 
             `quality={55}` because it never appears un-scrimmed — the vignette
             below sits on top of it at 70–95% opacity. */}

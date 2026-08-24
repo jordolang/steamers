@@ -258,25 +258,46 @@ the deferred fetch only had to be got right once.
 
 ### Lighthouse
 
-Measured locally against `next start`, Lighthouse 13, median of two runs.
-Desktop is **100** on both pages; mobile is 94 on `/` and 92 on `/menu`,
-up from 82.
+Measured locally against `next start`, Lighthouse 13, median of four runs on an
+idle machine — worth insisting on, because a warm AVIF encode running in the
+background moves the score by five or six points on its own.
+Desktop is **100** on both pages. Mobile went 82 → **94** on `/`; `/menu` was
+already at 92 and gained a point.
 
 | | before | after |
 |---|---|---|
 | Mobile `/` | 82 | **94** |
-| Desktop `/` | — | **100** |
-| LCP (mobile) | 4.4 s | 3.0 s |
+| Mobile `/menu` | 92 | **93** |
+| Desktop `/` and `/menu` | — | **100** |
+| LCP (mobile `/`) | 4.4 s | 3.0 s |
 | Speed Index | 2.3 s | 1.0 s |
 | CLS | 0 | 0 |
 
+A caveat on those mobile numbers: `next start` serves HTTP/1.1, so Lighthouse's
+simulator splits bandwidth across six connections and a `fetchPriority="high"`
+hint buys nothing. Over HTTP/2 in production the LCP should land better than
+3.0 s — treat 94 as a floor, not a ceiling.
+
 What moved it, in order:
 
-- **The LCP element was a video `poster`** — the least optimisable thing on the
-  web. Undiscoverable by the preload scanner, no `srcset`, no priority hint,
-  fetched whenever the video element got round to it. As a preloaded
-  `<Image fetchPriority="high">` it is 9 KB of AVIF instead of a 74 KB JPEG and
-  arrives in the first round trip. Same fix for `/menu`'s hero.
+- **The LCP element was a video `poster`** — the least optimisable thing you can
+  put on a critical path. Worth being precise about *why*, because the two hero
+  posters were failing differently and Lighthouse's LCP-discovery checklist
+  named both:
+
+  | | discoverable in the document | priority hint |
+  |---|---|---|
+  | `/` — `poster` in the markup | yes | **no** |
+  | `/menu` — `poster` attached in JS | **no** | **no** |
+
+  The preload scanner *does* read a `poster` attribute out of the markup, so the
+  homepage's was found early — it was simply fetched at low priority, behind
+  everything else, and a `poster` can carry neither a `srcset` nor a
+  `fetchpriority`. So it shipped one 74 KB JPEG at that size to every screen.
+  `/menu`'s was worse: attached in JS to keep it off the critical path, which
+  also put it beyond the scanner entirely. As a preloaded
+  `<Image fetchPriority="high">` both are 9–10 KB of AVIF, sized to the screen
+  that asked, and arrive in the first round trip.
 - **Fraunces was loaded with an axis nothing sets.** Google serves it with
   `opsz,SOFT,WONK` at 121 KB and with `SOFT,WONK` at 62 KB. The design sets SOFT
   and WONK; it never set an optical size. DM Mono was loading three weights for

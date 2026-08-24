@@ -36,10 +36,15 @@ export function SteamSection() {
       <div className="sticky top-0 h-svh overflow-hidden" style={{ marginBottom: "-100svh" }}>
         {/* The still, as a real lazy image rather than a `poster` attached in
             JS. Same reasoning as the hero — AVIF, sized to the screen — plus
-            it now shows up for the readers the scrub deliberately skips: a
-            phone, reduced motion, or a link too slow for the footage. It sits
-            three screens down, so it stays lazy and costs nothing until you
-            are nearly looking at it. */}
+            it now shows up for the readers this scrub skips: reduced motion,
+            or a link too slow for the footage, where no source is ever
+            attached and there was previously nothing to see at all.
+
+            Note this section, unlike the hero, has no `minWidth` and so does
+            scrub on phones. That is deliberate and predates this change: the
+            steamer clip is a third of the hero's weight, and its lite encode
+            is 0.9 MB. It sits three screens down, so the still stays lazy and
+            costs nothing until you are nearly looking at it. */}
         <Image
           src="/media/poster/steamer.jpg"
           alt=""

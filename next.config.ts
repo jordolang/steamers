@@ -27,11 +27,21 @@ const nextConfig: NextConfig = {
     // and the wordmark — which WebP renders at 34 KB — comes back at 15 KB.
     formats: ["image/avif", "image/webp"],
     // Next 16 requires every quality the site uses to be declared here. 55 is
-    // for artwork that is never seen un-scrimmed or at full size.
+    // the working default for photography — including the wordmark, whose
+    // crisp edges are the case you would expect to suffer: at 3x zoom the
+    // 55 and 75 encodes differ by under 1/255 per channel, for 3.6 KB.
     qualities: [55, 75],
-    // Everything under /public is content-addressed brand and menu
-    // photography that changes when the file changes, not on a schedule.
-    minimumCacheTTL: 31536000,
+    // `minimumCacheTTL` is deliberately left at Next's default (4 hours).
+    //
+    // A year-long TTL reads like free performance and is not: nothing under
+    // /public is content-addressed — `/brand/steamers-logo.png` is a stable
+    // path — and Next has no way to invalidate the optimizer cache. This was
+    // set to a year here briefly, and the failure is not hypothetical:
+    // `.next/cache/images` entries store the TTL they were written with and
+    // survive a rebuild, so `/_next/image` kept answering
+    // `max-age=31536000` from the old config until the directory was deleted
+    // by hand. Replacing a photograph in place would do the same to a
+    // visitor. Lighthouse's cache audit passes without it.
   },
 };
 
