@@ -291,7 +291,11 @@ draws it at 400 — 300 and 500 were 17 KB of the critical path rendering nothin
 improvement on the intrinsic 2877px, but Next's default width ladder steps
 128 → 256, so every retina phone still landed on the 256 variant for a mark
 drawn 83 px wide. Two intermediate sizes in `next.config.ts` and a `sizes` that
-states the real rendered width put it on the 160 variant: 12.2 KB → 6.8 KB.
+states the real rendered width give the browser somewhere to land in between:
+a 1.75× screen now takes the 160 variant (6.8 KB) and a 2× screen the 192
+(8.7 KB), rather than both rounding up to 256 (12.2 KB). The figures quoted
+here are the 1.75× case, because that is the DPR Lighthouse's mobile preset
+emulates.
 
 `priority` is deprecated in Next 16, so both above-the-fold images now say
 `loading="eager"` instead. React still hoists a preload link for any non-lazy
