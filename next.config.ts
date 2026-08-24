@@ -31,6 +31,11 @@ const nextConfig: NextConfig = {
     // crisp edges are the case you would expect to suffer: at 3x zoom the
     // 55 and 75 encodes differ by under 1/255 per channel, for 3.6 KB.
     qualities: [55, 75],
+    // Next's default ladder steps 128 -> 256, and the nav mark is drawn 83 CSS
+    // px wide, so every retina phone rounds up to 256 — roughly three times
+    // the pixels it can show. Two intermediate steps give it somewhere to
+    // land. The rest of the list is Next's default.
+    imageSizes: [16, 32, 48, 64, 96, 128, 160, 192, 256, 384],
     // `minimumCacheTTL` is deliberately left at Next's default (4 hours).
     //
     // A year-long TTL reads like free performance and is not: nothing under
