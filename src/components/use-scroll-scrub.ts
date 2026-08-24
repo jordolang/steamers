@@ -33,12 +33,6 @@ export function pickEncode(full: string, lite: string): string | null {
 export type ScrubOptions = {
   /** Full-fat encode. */
   src: string;
-  /**
-   * Still to show until the first frame decodes. Attached in JS rather than
-   * set as a `poster` attribute, because the preload scanner fetches those
-   * immediately however far down the page they sit.
-   */
-  poster?: string;
   /** Smaller encode for links that cannot keep up. Defaults to `src`. */
   liteSrc?: string;
   /** How hard the playhead chases the scroll. Lower is looser. */
@@ -52,8 +46,8 @@ export type ScrubOptions = {
  *
  * Two things here matter more than the arithmetic:
  *
- * **Nothing is fetched during page load.** The element ships with no `src`,
- * so the markup, the poster, the fonts and the LCP image get the connection to
+ * **Nothing is fetched during page load.** The element ships with no `src` and
+ * no `poster`, so the markup, the fonts and the LCP still get the connection to
  * themselves. Footage is attached once the main thread goes idle, and only
  * after the section is close enough to be worth having.
  *
@@ -66,7 +60,7 @@ export type ScrubOptions = {
 export function useScrollScrub(
   sectionRef: RefObject<HTMLElement | null>,
   videoRef: RefObject<HTMLVideoElement | null>,
-  { src, liteSrc, poster, ease = 0.12, minWidth = 0 }: ScrubOptions,
+  { src, liteSrc, ease = 0.12, minWidth = 0 }: ScrubOptions,
 ) {
   useEffect(() => {
     const section = sectionRef.current;
@@ -136,10 +130,19 @@ export function useScrollScrub(
     };
     video.addEventListener("error", onError);
 
+    // The element ships transparent so the still underneath is what paints
+    // first — a <video> with nothing decoded yet is not reliably transparent
+    // across browsers, and on a phone (or under reduced motion, or on a link
+    // too slow to carry footage) it never gets a source at all. Uncover it
+    // only once there is a frame behind it.
+    const onReady = () => {
+      video.style.opacity = "1";
+    };
+    video.addEventListener("loadeddata", onReady);
+
     let idle: number | undefined;
     const attach = () => {
       if (dead || video.src) return;
-      if (poster && !video.poster) video.poster = poster;
       video.src = chosen;
       video.preload = "auto";
       video.load();
@@ -177,6 +180,7 @@ export function useScrollScrub(
 
     return () => {
       video.removeEventListener("error", onError);
+      video.removeEventListener("loadeddata", onReady);
       if (idle !== undefined) {
         if (typeof window.cancelIdleCallback === "function") {
           window.cancelIdleCallback(idle);
@@ -187,5 +191,5 @@ export function useScrollScrub(
       running.disconnect();
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [sectionRef, videoRef, src, liteSrc, poster, ease, minWidth]);
+  }, [sectionRef, videoRef, src, liteSrc, ease, minWidth]);
 }

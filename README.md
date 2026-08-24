@@ -226,18 +226,26 @@ catch up as more arrives, which reads as film rather than fault. The scrub also
 skips any seek issued while the previous one is still running, because the
 dropped seek *is* the stutter.
 
-**No `src`, and no `poster`, in the markup.** Both are fetched by the preload
-scanner however far down the page they sit. Ten ambient clips meant a megabyte
-of stills competing with the first screen for a reader who might never scroll
-that far. Sources and posters are now attached in JS when the section comes
-within reach, and the scrubbed footage waits for `requestIdleCallback` on top of
-that. A cold homepage load is **~490 KB before any video starts** — markup,
-scripts, fonts, the logo and one poster; the hero then streams in behind a page
-that is already up and readable.
+**No `src` in the markup, and no `poster` attribute anywhere.** A `src` is
+fetched by the preload scanner however far down the page it sits; ten ambient
+clips meant a megabyte of footage competing with the first screen for a reader
+who might never scroll that far. Sources are attached in JS when the section
+comes within reach, and the scrubbed footage waits for `requestIdleCallback` on
+top of that.
+
+Stills are `<Image>`s layered *under* the video, not `poster` attributes. A
+`poster` cannot carry a `srcset` and is never format-negotiated, so it ships one
+full-size JPEG to every screen — and it is picked up by the preload scanner too,
+which is why they used to be attached in JS as well. Through the image pipeline
+the same frames are AVIF cut to the width that asked for them: the hero still is
+9 KB on a phone where the JPEG was 74 KB. Each video ships at `opacity: 0` and
+is uncovered on `loadeddata`, so the still is what paints until there is a frame
+to replace it — and remains all there is on a phone, under reduced motion, or on
+a link too slow to carry footage, where no source is ever attached.
 
 **Two encodes, chosen by measuring the link.** `navigator.connection` gives the
 browser's own throughput estimate; under ~2.5 Mbit/s, or on 3G, the smaller cut
-is served, and under Save-Data or 2G nothing is fetched and the poster stands
+is served, and under Save-Data or 2G nothing is fetched and the still stands
 in. Both encodes are the same 30 seconds — 1280×720 / 5.3 MB and 854×480 /
 2.3 MB — so the scrub arithmetic does not care which one arrives.
 
@@ -248,8 +256,54 @@ in. Both encodes are the same 30 seconds — 1280×720 / 5.3 MB and 854×480 /
 Both scrubbed sections share one `useScrollScrub` hook, so the buffer gating and
 the deferred fetch only had to be got right once.
 
+### Lighthouse
+
+Measured locally against `next start`, Lighthouse 13, median of two runs.
+Desktop is **100** on both pages; mobile is 94 on `/` and 92 on `/menu`,
+up from 82.
+
+| | before | after |
+|---|---|---|
+| Mobile `/` | 82 | **94** |
+| Desktop `/` | — | **100** |
+| LCP (mobile) | 4.4 s | 3.0 s |
+| Speed Index | 2.3 s | 1.0 s |
+| CLS | 0 | 0 |
+
+What moved it, in order:
+
+- **The LCP element was a video `poster`** — the least optimisable thing on the
+  web. Undiscoverable by the preload scanner, no `srcset`, no priority hint,
+  fetched whenever the video element got round to it. As a preloaded
+  `<Image fetchPriority="high">` it is 9 KB of AVIF instead of a 74 KB JPEG and
+  arrives in the first round trip. Same fix for `/menu`'s hero.
+- **Fraunces was loaded with an axis nothing sets.** Google serves it with
+  `opsz,SOFT,WONK` at 121 KB and with `SOFT,WONK` at 62 KB. The design sets SOFT
+  and WONK; it never set an optical size. DM Mono was loading three weights for
+  the one weight the CSS asks for. Together, 76 KB off the critical path with no
+  visible change.
+- **The tab icon was 39 KB.** A 256px entry inside the `.ico` that nothing asks
+  an `.ico` for, plus a second 270px PNG declared alongside it that Chrome
+  dutifully downloaded as well. Now one 2.8 KB `.ico`, with the Apple touch icon
+  at the 180px Apple actually wants.
+- **AVIF.** Next serves WebP by default. For this site — photography over dark
+  scrims — AVIF is worth roughly half again: the wordmark is 34 KB as WebP and
+  15 KB as AVIF.
+
+What was tried and reverted, so nobody re-runs it: `experimental.inlineCss`
+removes the render-blocking stylesheet, but Next also repeats the CSS inside the
+RSC payload, taking the document from 20 KB to 46 KB gzipped to save an 8.7 KB
+request — net **−2 points**. Dropping `preload` from the fonts takes 106 KB off
+the critical path and costs FCP 0.95 s → 1.8 s and CLS 0 → 0.19. Both are
+written up in `next.config.ts` and left off.
+
+The remaining mobile gap is bandwidth, not code: 106 KB of the ~150 KB on the
+critical path is the three typefaces. The only lever left is dropping SOFT and
+WONK from Fraunces (62 KB → 37 KB), which is a typographic decision, not a
+performance one.
+
 The hero scrub is **desktop-only**. Below 768px the video is never fetched and
-the poster stands in: frame-accurate `currentTime` seeking is unreliable on iOS
+the still stands in: frame-accurate `currentTime` seeking is unreliable on iOS
 Safari, and pushing a scrub-encoded file at a phone on cellular to power an
 effect that may stutter anyway is a bad trade. A sharp still wins.
 

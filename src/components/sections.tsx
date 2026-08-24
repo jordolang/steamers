@@ -89,6 +89,7 @@ export function RatingsSection() {
       <AmbientVideo
         src="/media/video/dining-room.mp4"
         poster="/media/poster/dining-room.jpg"
+        sizes="100vw"
         className="absolute inset-0 -z-10 size-full opacity-30"
       />
       <div aria-hidden className="absolute inset-0 -z-10 bg-ink/70" />
@@ -157,6 +158,7 @@ export function EventsSection() {
                 <AmbientVideo
                   src="/media/video/patio.mp4"
                   poster="/media/poster/patio.jpg"
+                  sizes="(max-width: 1023px) 100vw, 660px"
                   className="absolute inset-0 size-full"
                 />
                 <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink via-ink/20 to-transparent" />
@@ -177,6 +179,7 @@ export function EventsSection() {
                 <AmbientVideo
                   src="/media/video/bar-real.mp4"
                   poster="/media/poster/bar-real.jpg"
+                  sizes="(max-width: 1023px) 100vw, 660px"
                   className="absolute inset-0 size-full"
                 />
                 <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink via-ink/20 to-transparent" />
@@ -227,6 +230,7 @@ export function VisitSection() {
       <AmbientVideo
         src="/media/video/entrance-arch.mp4"
         poster="/media/poster/entrance-arch.jpg"
+        sizes="100vw"
         className="absolute inset-0 -z-10 size-full opacity-20"
       />
       <div aria-hidden className="absolute inset-0 -z-10 bg-ink-2/80" />

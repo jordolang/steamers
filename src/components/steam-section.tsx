@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRef } from "react";
 import { useScrollScrub } from "./use-scroll-scrub";
 
@@ -22,7 +23,6 @@ export function SteamSection() {
   useScrollScrub(sectionRef, videoRef, {
     src: SCRUB_FULL,
     liteSrc: SCRUB_LITE,
-    poster: "/media/poster/steamer.jpg",
     ease: 0.1,
   });
 
@@ -34,9 +34,25 @@ export function SteamSection() {
       className="relative isolate scroll-mt-[68px] bg-ink"
     >
       <div className="sticky top-0 h-svh overflow-hidden" style={{ marginBottom: "-100svh" }}>
+        {/* The still, as a real lazy image rather than a `poster` attached in
+            JS. Same reasoning as the hero — AVIF, sized to the screen — plus
+            it now shows up for the readers the scrub deliberately skips: a
+            phone, reduced motion, or a link too slow for the footage. It sits
+            three screens down, so it stays lazy and costs nothing until you
+            are nearly looking at it. */}
+        <Image
+          src="/media/poster/steamer.jpg"
+          alt=""
+          fill
+          sizes="100vw"
+          quality={55}
+          className="object-cover"
+        />
         {/* No `src` here on purpose — the hook attaches one once this section
             is within a screen of the viewport and the main thread is quiet, so
-            nothing three screens down competes with the first paint. */}
+            nothing three screens down competes with the first paint. It stays
+            transparent until the first frame decodes, so the still above is
+            what shows until then, and all there is if the scrub never runs. */}
         <video
           ref={videoRef}
           muted
@@ -44,7 +60,7 @@ export function SteamSection() {
           preload="none"
           aria-hidden
           tabIndex={-1}
-          className="pointer-events-none absolute inset-0 size-full select-none object-cover"
+          className="pointer-events-none absolute inset-0 size-full select-none object-cover opacity-0 transition-opacity duration-700"
         />
         <div aria-hidden className="absolute inset-0 bg-ink/45" />
         <div
