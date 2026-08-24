@@ -41,9 +41,14 @@ export default function MenuPage() {
       <main id="main">
         {/* Compact hero — the menu itself is the reason people are here. */}
         <section className="relative isolate overflow-hidden border-b border-ink-3">
+          {/* The still behind this hero fills the first screen, which makes
+              it the LCP element of the page — so unlike every other ambient
+              clip on the site, its still is preloaded at high priority. */}
           <AmbientVideo
             src="/media/video/clams.mp4"
             poster="/media/poster/clams.jpg"
+            sizes="100vw"
+            eager
             className="absolute inset-0 -z-10 size-full opacity-40"
           />
           <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/80 to-ink/50" />

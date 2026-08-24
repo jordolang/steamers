@@ -46,7 +46,9 @@ export function Nav() {
             alt={SITE.name}
             width={2877}
             height={1257}
-            priority
+            // `priority` is deprecated in Next 16; `preload` is the same
+            // behaviour under a name that says what it does.
+            preload
             // Without this Next has only the intrinsic 2877px to go on and
             // asks for the 3840 variant — 67 KB for a mark drawn 36px tall.
             sizes="120px"

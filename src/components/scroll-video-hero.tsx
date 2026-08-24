@@ -99,7 +99,7 @@ export function ScrollVideoHero() {
     };
   }, []);
 
-  // Below 768px the footage is never fetched and the poster stands in:
+  // Below 768px the footage is never fetched and the still stands in:
   // frame-accurate seeking is unreliable on iOS Safari, and a scrub-encoded
   // file is too heavy to push at a phone on cellular for an effect that may
   // stutter anyway. A sharp still wins.
@@ -126,19 +126,45 @@ export function ScrollVideoHero() {
           marginBottom: "calc((100svh - var(--nav-offset)) * -1)",
         }}
       >
+        {/* The first frame of the walk-in, as a real image rather than the
+            video's `poster` attribute.
+
+            This element fills the viewport, so it is the LCP on every screen
+            size — and a `poster` is the worst possible way to serve an LCP.
+            The preload scanner does find it (it reads `poster` out of the
+            markup), but it is fetched at low priority behind everything else,
+            and the attribute can carry neither a `srcset` nor a
+            `fetchpriority` — so it shipped one 74 KB JPEG at that size to
+            every screen. As an `<Image>` it is preloaded from the document
+            head at high priority, served AVIF, and sized to the screen asking
+            for it: ~10 KB on a phone.
+
+            `quality={55}` because it never appears un-scrimmed — the vignette
+            below sits on top of it at 70–95% opacity. */}
+        <Image
+          src="/media/poster/walk-in.jpg"
+          alt=""
+          fill
+          preload
+          fetchPriority="high"
+          sizes="100vw"
+          quality={55}
+          className="object-cover"
+        />
         {/* No `src` here on purpose — the client attaches one only after it
             has measured the connection and the main thread has gone quiet.
-            Until then this is just the poster, which the preload scanner
-            picks up in the first round trip. */}
+            Transparent until the first frame decodes, so the still above is
+            what paints; on a phone, under reduced motion, or on a link too
+            slow to carry footage, no source is ever attached and the still is
+            all there is. */}
         <video
           ref={videoRef}
-          poster="/media/poster/walk-in.jpg"
           muted
           playsInline
           preload="none"
           aria-hidden
           tabIndex={-1}
-          className="pointer-events-none absolute inset-0 size-full select-none object-cover"
+          className="pointer-events-none absolute inset-0 size-full select-none object-cover opacity-0 transition-opacity duration-700"
         />
         {/* Vignette + floor gradient so copy holds at any frame. On narrow
             screens the copy spans the full width, so the scrim has to as well. */}
@@ -210,7 +236,12 @@ export function ScrollVideoHero() {
                       alt={panel.title}
                       width={2770}
                       height={987}
-                      priority
+                      // `priority` is deprecated in Next 16. Preloaded, but
+                      // deliberately without `fetchPriority="high"` — that is
+                      // reserved for the still behind it, which is the actual
+                      // LCP element on every screen size.
+                      preload
+                      quality={55}
                       sizes="(max-width: 639px) 92vw, 38rem"
                       className="h-auto w-full max-w-[30rem] drop-shadow-[0_6px_30px_rgba(0,0,0,0.7)] sm:max-w-[38rem]"
                     />

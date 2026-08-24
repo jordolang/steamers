@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { AmbientVideo } from "./ambient-video";
 import { Reveal } from "./reveal";
@@ -94,6 +92,7 @@ export function SignaturePlates() {
                   <AmbientVideo
                     src={plate.video}
                     poster={plate.poster}
+                    sizes="(max-width: 1023px) 100vw, 660px"
                     className="absolute inset-0 size-full"
                   />
                 </figure>
