@@ -17,11 +17,15 @@ const archivo = Archivo({
   display: "swap",
 });
 
+// DM Mono is a static family, so every weight listed here is a separate file
+// preloaded at high priority on the first screen. The site sets it only
+// through `.eyebrow`, `.leader__price` and `font-mono`, none of which change
+// the weight — 300 and 500 were 17 KB of the critical path rendering nothing.
 const dmMono = DM_Mono({
   subsets: ["latin"],
   variable: "--font-dm-mono",
   display: "swap",
-  weight: ["300", "400", "500"],
+  weight: ["400"],
 });
 
 const DESCRIPTION =

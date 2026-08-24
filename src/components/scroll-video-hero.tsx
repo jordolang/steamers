@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import ReactDOM from "react-dom";
 import { useEffect, useRef } from "react";
 import { SITE } from "@/data/site";
 import { useScrollScrub } from "./use-scroll-scrub";
@@ -17,6 +18,14 @@ const DEFAULT_NAV_HEIGHT = 68;
  */
 const SCRUB_FULL = "/media/video/walk-in.mp4"; // 1280×720, 5.3 MB
 const SCRUB_LITE = "/media/video/walk-in-lite.mp4"; // 854×480, 2.3 MB
+
+/**
+ * The first frame of that cut, and — because the footage itself is deferred
+ * — the thing the page actually paints as its largest element. WebP rather
+ * than JPEG: it is the same still 28 KB lighter, and every browser this site
+ * builds for decodes it.
+ */
+const SCRUB_POSTER = "/media/poster/walk-in.webp";
 
 const PANELS = [
   {
@@ -47,6 +56,15 @@ const PANELS = [
 ];
 
 export function ScrollVideoHero() {
+  /**
+   * The poster is the LCP element, and a `poster` attribute buys no priority:
+   * the browser finds it only once it has parsed into <main>, and then queues
+   * it behind the fonts and the stylesheet at Medium. Hoisting a preload into
+   * <head> with `fetchPriority: "high"` puts the one pixel-bearing resource on
+   * the first screen at the front of the queue instead of the middle of it.
+   */
+  ReactDOM.preload(SCRUB_POSTER, { as: "image", fetchPriority: "high" });
+
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const cueRef = useRef<HTMLDivElement>(null);
@@ -128,11 +146,11 @@ export function ScrollVideoHero() {
       >
         {/* No `src` here on purpose — the client attaches one only after it
             has measured the connection and the main thread has gone quiet.
-            Until then this is just the poster, which the preload scanner
-            picks up in the first round trip. */}
+            Until then this is just the poster, which the preload above has
+            already pulled down in the first round trip. */}
         <video
           ref={videoRef}
-          poster="/media/poster/walk-in.jpg"
+          poster={SCRUB_POSTER}
           muted
           playsInline
           preload="none"
@@ -210,7 +228,12 @@ export function ScrollVideoHero() {
                       alt={panel.title}
                       width={2770}
                       height={987}
-                      priority
+                      // Above the fold, so eager — but without the priority
+                      // hint the deprecated `priority` prop used to carry. The
+                      // wordmark and the poster are both on the first screen
+                      // and only one of them is the LCP element, so the hint
+                      // goes to the poster and this loads alongside it.
+                      loading="eager"
                       sizes="(max-width: 639px) 92vw, 38rem"
                       className="h-auto w-full max-w-[30rem] drop-shadow-[0_6px_30px_rgba(0,0,0,0.7)] sm:max-w-[38rem]"
                     />

@@ -46,10 +46,18 @@ export function Nav() {
             alt={SITE.name}
             width={2877}
             height={1257}
-            priority
+            // `priority` is deprecated in Next 16; `loading="eager"` is the
+            // replacement for "this is above the fold". React still hoists a
+            // preload link for any non-lazy image, so the mark keeps its head
+            // start — it just no longer carries a priority hint, which is now
+            // reserved for the hero poster the LCP is actually measured on.
+            loading="eager"
             // Without this Next has only the intrinsic 2877px to go on and
             // asks for the 3840 variant — 67 KB for a mark drawn 36px tall.
-            sizes="120px"
+            // The mark is 2.29:1, so h-9/h-10 draw it 83/92 px wide; stating
+            // that rather than a round 120px lets a 2× screen settle on the
+            // 192 variant instead of rounding up to 256.
+            sizes="(min-width: 640px) 92px, 83px"
             className="h-9 w-auto sm:h-10"
           />
         </Link>

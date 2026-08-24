@@ -231,7 +231,7 @@ scanner however far down the page they sit. Ten ambient clips meant a megabyte
 of stills competing with the first screen for a reader who might never scroll
 that far. Sources and posters are now attached in JS when the section comes
 within reach, and the scrubbed footage waits for `requestIdleCallback` on top of
-that. A cold homepage load is **~490 KB before any video starts** — markup,
+that. A cold homepage load is **~450 KB before any video starts** — markup,
 scripts, fonts, the logo and one poster; the hero then streams in behind a page
 that is already up and readable.
 
@@ -255,6 +255,53 @@ effect that may stutter anyway is a bad trade. A sharp still wins.
 
 `prefers-reduced-motion` is honoured throughout — nothing scrubs, nothing
 autoplays, and no video is fetched at all; the stills still load.
+
+## What the first screen actually waits on
+
+The hero video never plays during load, so the thing the browser paints as the
+page's largest element is the **poster still** behind it. Everything below is
+about getting that one image up sooner.
+
+**The poster is preloaded, at high priority.** A `poster` attribute is
+discoverable — it is right there in the markup — but it carries no priority
+hint, so the browser found it only on reaching `<main>` and then queued it at
+Medium behind the fonts and the stylesheet. It started 177 ms into the load.
+`ReactDOM.preload(..., { fetchPriority: "high" })` hoists a link into `<head>`
+and it now starts at 28 ms, alongside the fonts rather than behind them. This
+is the one hint on the page; nothing else asks for `high`, because a priority
+every resource claims is a priority none of them has.
+
+**The poster is WebP.** Same still, 75 KB → 47 KB, and it sits behind a scrim
+and a vignette where the difference is not visible. The other posters stay JPEG:
+they are attached in JS as their sections come into reach and never compete with
+the first screen.
+
+**The stylesheet is inlined.** Tailwind emits ~9 KB for the whole site and it
+arrived as a render-blocking `<link>` — a second round trip before anything
+could paint, which Lighthouse costed at 300 ms. `experimental.inlineCss` carries
+it inside the HTML instead. The document gets bigger and stops being cacheable
+separately; for a site whose visitors mostly arrive once, from a search result,
+on a phone, that is the right side of the trade.
+
+**Nothing preloads a weight it never sets.** DM Mono is a static family, so each
+listed weight is its own file preloaded at high priority. The site only ever
+draws it at 400 — 300 and 500 were 17 KB of the critical path rendering nothing.
+
+**The nav mark asks for the size it draws.** `sizes="120px"` was already an
+improvement on the intrinsic 2877px, but Next's default width ladder steps
+128 → 256, so every retina phone still landed on the 256 variant for a mark
+drawn 83 px wide. Two intermediate sizes in `next.config.ts` and a `sizes` that
+states the real rendered width put it on the 160 variant: 12.2 KB → 6.8 KB.
+
+`priority` is deprecated in Next 16, so both above-the-fold images now say
+`loading="eager"` instead. React still hoists a preload link for any non-lazy
+image, so they keep their head start — they just no longer carry a priority hint
+that would compete with the poster.
+
+Measured with Lighthouse (mobile, simulated slow 4G) against `next start`:
+performance 0.80–0.86 → 0.88–0.90, LCP 4.4 s → 3.5 s, first load 485 KB / 19
+requests → 451 KB / 16. The LCP-discovery and render-blocking audits go from
+failing to clean.
 
 ## Media
 
