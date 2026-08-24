@@ -46,20 +46,12 @@ export function Nav() {
             alt={SITE.name}
             width={2877}
             height={1257}
-            // `priority` is deprecated in Next 16; `loading="eager"` is the
-            // replacement for "this is above the fold". The preload link is
-            // not lost with it: react-dom's SSR emits one for *any* <img> that
-            // is not `loading="lazy"` or `fetchPriority="low"`, independent of
-            // Next — so the mark keeps its head start and simply stops
-            // carrying a priority hint, which the hero poster now owns alone.
-            // (Verify in the served HTML, not by reading next/image.)
-            loading="eager"
+            // `priority` is deprecated in Next 16; `preload` is the same
+            // behaviour under a name that says what it does.
+            preload
             // Without this Next has only the intrinsic 2877px to go on and
             // asks for the 3840 variant — 67 KB for a mark drawn 36px tall.
-            // The mark is 2.29:1, so h-9/h-10 draw it 83/92 px wide; stating
-            // that rather than a round 120px lets a 2× screen settle on the
-            // 192 variant instead of rounding up to 256.
-            sizes="(min-width: 640px) 92px, 83px"
+            sizes="120px"
             className="h-9 w-auto sm:h-10"
           />
         </Link>

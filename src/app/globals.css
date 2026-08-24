@@ -73,12 +73,12 @@ body {
 
 .font-display {
   font-family: var(--font-display);
-  font-optical-sizing: auto;
 }
 
 /* Fraunces variable axes: SOFT rounds the terminals, WONK enables the
    quirkier alternates. A touch of both keeps the display face from
-   reading like a stock high-contrast serif. */
+   reading like a stock high-contrast serif. These two are the only axes
+   the face is loaded with — see the note in layout.tsx. */
 .display-xl,
 .display-lg,
 .display-md {

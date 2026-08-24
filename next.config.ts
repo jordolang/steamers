@@ -1,25 +1,47 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /**
-   * Tailwind emits ~9 KB of atomic CSS for the whole site, and it arrives as a
-   * render-blocking `<link>` — a second round trip before anything can paint.
-   * At that size the stylesheet is cheaper carried inside the HTML than
-   * fetched, which is exactly the case Next documents this flag for.
-   */
   experimental: {
-    inlineCss: true,
-  },
-
-  images: {
     /**
-     * Next's default width ladder steps 128 → 256, and the nav mark is drawn
-     * about 83 CSS px wide. Every retina phone therefore lands on the 256
-     * variant — three times the pixels it can show, and 12 KB on the critical
-     * path for a mark 36 px tall. The two intermediate steps let a 2× screen
-     * ask for what it actually needs. The rest of the list is Next's default.
+     * Left off deliberately, with the measurement written down so nobody has
+     * to re-run it.
+     *
+     * Inlining the stylesheet does remove the one render-blocking request, and
+     * on paper that is the right trade for a small Tailwind bundle. In practice
+     * Next also repeats the CSS inside the RSC payload, so the document went
+     * from 20 KB to 46 KB gzipped to save an 8.7 KB request — and the extra
+     * 26 KB lands on TTFB, which every metric is measured from. Lighthouse
+     * mobile, median of two runs each:
+     *
+     *   inlineCss: true   FCP 1.04 s   LCP 3.16 s   TBT 192 ms   score 91
+     *   inlineCss: false  FCP 0.95 s   LCP 3.15 s   TBT 110 ms   score 93
+     *
+     * Revisit if Next stops duplicating the CSS into the flight payload.
      */
-    imageSizes: [16, 32, 48, 64, 96, 128, 160, 192, 256, 384],
+    inlineCss: false,
+  },
+  images: {
+    // AVIF first, WebP for anything that cannot take it. The site is almost
+    // entirely photography over dark scrims, which is exactly where AVIF's
+    // advantage is largest: the hero still drops from a 74 KB JPEG to 9 KB,
+    // and the wordmark — which WebP renders at 34 KB — comes back at 15 KB.
+    formats: ["image/avif", "image/webp"],
+    // Next 16 requires every quality the site uses to be declared here. 55 is
+    // the working default for photography — including the wordmark, whose
+    // crisp edges are the case you would expect to suffer: at 3x zoom the
+    // 55 and 75 encodes differ by under 1/255 per channel, for 3.6 KB.
+    qualities: [55, 75],
+    // `minimumCacheTTL` is deliberately left at Next's default (4 hours).
+    //
+    // A year-long TTL reads like free performance and is not: nothing under
+    // /public is content-addressed — `/brand/steamers-logo.png` is a stable
+    // path — and Next has no way to invalidate the optimizer cache. This was
+    // set to a year here briefly, and the failure is not hypothetical:
+    // `.next/cache/images` entries store the TTL they were written with and
+    // survive a rebuild, so `/_next/image` kept answering
+    // `max-age=31536000` from the old config until the directory was deleted
+    // by hand. Replacing a photograph in place would do the same to a
+    // visitor. Lighthouse's cache audit passes without it.
   },
 };
 

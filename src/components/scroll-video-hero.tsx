@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import ReactDOM from "react-dom";
 import { useEffect, useRef } from "react";
 import { SITE } from "@/data/site";
 import { useScrollScrub } from "./use-scroll-scrub";
@@ -18,14 +17,6 @@ const DEFAULT_NAV_HEIGHT = 68;
  */
 const SCRUB_FULL = "/media/video/walk-in.mp4"; // 1280×720, 5.3 MB
 const SCRUB_LITE = "/media/video/walk-in-lite.mp4"; // 854×480, 2.3 MB
-
-/**
- * The first frame of that cut, and — because the footage itself is deferred
- * — the thing the page actually paints as its largest element. WebP rather
- * than JPEG: it is the same still 28 KB lighter, and every browser this site
- * builds for decodes it.
- */
-const SCRUB_POSTER = "/media/poster/walk-in.webp";
 
 const PANELS = [
   {
@@ -56,15 +47,6 @@ const PANELS = [
 ];
 
 export function ScrollVideoHero() {
-  /**
-   * The poster is the LCP element, and a `poster` attribute buys no priority:
-   * the browser finds it only once it has parsed into <main>, and then queues
-   * it behind the fonts and the stylesheet at Medium. Hoisting a preload into
-   * <head> with `fetchPriority: "high"` puts the one pixel-bearing resource on
-   * the first screen at the front of the queue instead of the middle of it.
-   */
-  ReactDOM.preload(SCRUB_POSTER, { as: "image", fetchPriority: "high" });
-
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const cueRef = useRef<HTMLDivElement>(null);
@@ -117,7 +99,7 @@ export function ScrollVideoHero() {
     };
   }, []);
 
-  // Below 768px the footage is never fetched and the poster stands in:
+  // Below 768px the footage is never fetched and the still stands in:
   // frame-accurate seeking is unreliable on iOS Safari, and a scrub-encoded
   // file is too heavy to push at a phone on cellular for an effect that may
   // stutter anyway. A sharp still wins.
@@ -144,19 +126,45 @@ export function ScrollVideoHero() {
           marginBottom: "calc((100svh - var(--nav-offset)) * -1)",
         }}
       >
+        {/* The first frame of the walk-in, as a real image rather than the
+            video's `poster` attribute.
+
+            This element fills the viewport, so it is the LCP on every screen
+            size — and a `poster` is the worst possible way to serve an LCP.
+            The preload scanner does find it (it reads `poster` out of the
+            markup), but it is fetched at low priority behind everything else,
+            and the attribute can carry neither a `srcset` nor a
+            `fetchpriority` — so it shipped one 74 KB JPEG at that size to
+            every screen. As an `<Image>` it is preloaded from the document
+            head at high priority, served AVIF, and sized to the screen asking
+            for it: ~10 KB on a phone.
+
+            `quality={55}` because it never appears un-scrimmed — the vignette
+            below sits on top of it at 70–95% opacity. */}
+        <Image
+          src="/media/poster/walk-in.jpg"
+          alt=""
+          fill
+          preload
+          fetchPriority="high"
+          sizes="100vw"
+          quality={55}
+          className="object-cover"
+        />
         {/* No `src` here on purpose — the client attaches one only after it
             has measured the connection and the main thread has gone quiet.
-            Until then this is just the poster, which the preload above has
-            already pulled down in the first round trip. */}
+            Transparent until the first frame decodes, so the still above is
+            what paints; on a phone, under reduced motion, or on a link too
+            slow to carry footage, no source is ever attached and the still is
+            all there is. */}
         <video
           ref={videoRef}
-          poster={SCRUB_POSTER}
           muted
           playsInline
           preload="none"
           aria-hidden
           tabIndex={-1}
-          className="pointer-events-none absolute inset-0 size-full select-none object-cover"
+          className="pointer-events-none absolute inset-0 size-full select-none object-cover opacity-0 transition-opacity duration-700"
         />
         {/* Vignette + floor gradient so copy holds at any frame. On narrow
             screens the copy spans the full width, so the scrim has to as well. */}
@@ -228,12 +236,12 @@ export function ScrollVideoHero() {
                       alt={panel.title}
                       width={2770}
                       height={987}
-                      // Above the fold, so eager — but without the priority
-                      // hint the deprecated `priority` prop used to carry. The
-                      // wordmark and the poster are both on the first screen
-                      // and only one of them is the LCP element, so the hint
-                      // goes to the poster and this loads alongside it.
-                      loading="eager"
+                      // `priority` is deprecated in Next 16. Preloaded, but
+                      // deliberately without `fetchPriority="high"` — that is
+                      // reserved for the still behind it, which is the actual
+                      // LCP element on every screen size.
+                      preload
+                      quality={55}
                       sizes="(max-width: 639px) 92vw, 38rem"
                       className="h-auto w-full max-w-[30rem] drop-shadow-[0_6px_30px_rgba(0,0,0,0.7)] sm:max-w-[38rem]"
                     />

@@ -226,18 +226,26 @@ catch up as more arrives, which reads as film rather than fault. The scrub also
 skips any seek issued while the previous one is still running, because the
 dropped seek *is* the stutter.
 
-**No `src`, and no `poster`, in the markup.** Both are fetched by the preload
-scanner however far down the page they sit. Ten ambient clips meant a megabyte
-of stills competing with the first screen for a reader who might never scroll
-that far. Sources and posters are now attached in JS when the section comes
-within reach, and the scrubbed footage waits for `requestIdleCallback` on top of
-that. A cold homepage load is **~450 KB before any video starts** — markup,
-scripts, fonts, the logo and one poster; the hero then streams in behind a page
-that is already up and readable.
+**No `src` in the markup, and no `poster` attribute anywhere.** A `src` is
+fetched by the preload scanner however far down the page it sits; ten ambient
+clips meant a megabyte of footage competing with the first screen for a reader
+who might never scroll that far. Sources are attached in JS when the section
+comes within reach, and the scrubbed footage waits for `requestIdleCallback` on
+top of that.
+
+Stills are `<Image>`s layered *under* the video, not `poster` attributes. A
+`poster` cannot carry a `srcset` and is never format-negotiated, so it ships one
+full-size JPEG to every screen — and it is picked up by the preload scanner too,
+which is why they used to be attached in JS as well. Through the image pipeline
+the same frames are AVIF cut to the width that asked for them: the hero still is
+9 KB on a phone where the JPEG was 74 KB. Each video ships at `opacity: 0` and
+is uncovered on `loadeddata`, so the still is what paints until there is a frame
+to replace it — and remains all there is on a phone, under reduced motion, or on
+a link too slow to carry footage, where no source is ever attached.
 
 **Two encodes, chosen by measuring the link.** `navigator.connection` gives the
 browser's own throughput estimate; under ~2.5 Mbit/s, or on 3G, the smaller cut
-is served, and under Save-Data or 2G nothing is fetched and the poster stands
+is served, and under Save-Data or 2G nothing is fetched and the still stands
 in. Both encodes are the same 30 seconds — 1280×720 / 5.3 MB and 854×480 /
 2.3 MB — so the scrub arithmetic does not care which one arrives.
 
@@ -248,64 +256,80 @@ in. Both encodes are the same 30 seconds — 1280×720 / 5.3 MB and 854×480 /
 Both scrubbed sections share one `useScrollScrub` hook, so the buffer gating and
 the deferred fetch only had to be got right once.
 
+### Lighthouse
+
+Measured locally against `next start`, Lighthouse 13, median of four runs on an
+idle machine — worth insisting on, because a warm AVIF encode running in the
+background moves the score by five or six points on its own.
+Desktop is **100** on both pages. Mobile went 82 → **94** on `/`; `/menu` was
+already at 92 and gained a point.
+
+| | before | after |
+|---|---|---|
+| Mobile `/` | 82 | **94** |
+| Mobile `/menu` | 92 | **93** |
+| Desktop `/` and `/menu` | — | **100** |
+| LCP (mobile `/`) | 4.4 s | 3.0 s |
+| Speed Index | 2.3 s | 1.0 s |
+| CLS | 0 | 0 |
+
+A caveat on those mobile numbers: `next start` serves HTTP/1.1, so Lighthouse's
+simulator splits bandwidth across six connections and a `fetchPriority="high"`
+hint buys nothing. Over HTTP/2 in production the LCP should land better than
+3.0 s — treat 94 as a floor, not a ceiling.
+
+What moved it, in order:
+
+- **The LCP element was a video `poster`** — the least optimisable thing you can
+  put on a critical path. Worth being precise about *why*, because the two hero
+  posters were failing differently and Lighthouse's LCP-discovery checklist
+  named both:
+
+  | | discoverable in the document | priority hint |
+  |---|---|---|
+  | `/` — `poster` in the markup | yes | **no** |
+  | `/menu` — `poster` attached in JS | **no** | **no** |
+
+  The preload scanner *does* read a `poster` attribute out of the markup, so the
+  homepage's was found early — it was simply fetched at low priority, behind
+  everything else, and a `poster` can carry neither a `srcset` nor a
+  `fetchpriority`. So it shipped one 74 KB JPEG at that size to every screen.
+  `/menu`'s was worse: attached in JS to keep it off the critical path, which
+  also put it beyond the scanner entirely. As a preloaded
+  `<Image fetchPriority="high">` both are 9–10 KB of AVIF, sized to the screen
+  that asked, and arrive in the first round trip.
+- **Fraunces was loaded with an axis nothing sets.** Google serves it with
+  `opsz,SOFT,WONK` at 121 KB and with `SOFT,WONK` at 62 KB. The design sets SOFT
+  and WONK; it never set an optical size. DM Mono was loading three weights for
+  the one weight the CSS asks for. Together, 76 KB off the critical path with no
+  visible change.
+- **The tab icon was 39 KB.** A 256px entry inside the `.ico` that nothing asks
+  an `.ico` for, plus a second 270px PNG declared alongside it that Chrome
+  dutifully downloaded as well. Now one 2.8 KB `.ico`, with the Apple touch icon
+  at the 180px Apple actually wants.
+- **AVIF.** Next serves WebP by default. For this site — photography over dark
+  scrims — AVIF is worth roughly half again: the wordmark is 34 KB as WebP and
+  15 KB as AVIF.
+
+What was tried and reverted, so nobody re-runs it: `experimental.inlineCss`
+removes the render-blocking stylesheet, but Next also repeats the CSS inside the
+RSC payload, taking the document from 20 KB to 46 KB gzipped to save an 8.7 KB
+request — net **−2 points**. Dropping `preload` from the fonts takes 106 KB off
+the critical path and costs FCP 0.95 s → 1.8 s and CLS 0 → 0.19. Both are
+written up in `next.config.ts` and left off.
+
+The remaining mobile gap is bandwidth, not code: 106 KB of the ~150 KB on the
+critical path is the three typefaces. The only lever left is dropping SOFT and
+WONK from Fraunces (62 KB → 37 KB), which is a typographic decision, not a
+performance one.
+
 The hero scrub is **desktop-only**. Below 768px the video is never fetched and
-the poster stands in: frame-accurate `currentTime` seeking is unreliable on iOS
+the still stands in: frame-accurate `currentTime` seeking is unreliable on iOS
 Safari, and pushing a scrub-encoded file at a phone on cellular to power an
 effect that may stutter anyway is a bad trade. A sharp still wins.
 
 `prefers-reduced-motion` is honoured throughout — nothing scrubs, nothing
 autoplays, and no video is fetched at all; the stills still load.
-
-## What the first screen actually waits on
-
-The hero video never plays during load, so the thing the browser paints as the
-page's largest element is the **poster still** behind it. Everything below is
-about getting that one image up sooner.
-
-**The poster is preloaded, at high priority.** A `poster` attribute is
-discoverable — it is right there in the markup — but it carries no priority
-hint, so the browser found it only on reaching `<main>` and then queued it at
-Medium behind the fonts and the stylesheet. It started 177 ms into the load.
-`ReactDOM.preload(..., { fetchPriority: "high" })` hoists a link into `<head>`
-and it now starts at 28 ms, alongside the fonts rather than behind them. This
-is the one hint on the page; nothing else asks for `high`, because a priority
-every resource claims is a priority none of them has.
-
-**The poster is WebP.** Same still, 75 KB → 47 KB, and it sits behind a scrim
-and a vignette where the difference is not visible. The other posters stay JPEG:
-they are attached in JS as their sections come into reach and never compete with
-the first screen.
-
-**The stylesheet is inlined.** Tailwind emits ~9 KB for the whole site and it
-arrived as a render-blocking `<link>` — a second round trip before anything
-could paint, which Lighthouse costed at 300 ms. `experimental.inlineCss` carries
-it inside the HTML instead. The document gets bigger and stops being cacheable
-separately; for a site whose visitors mostly arrive once, from a search result,
-on a phone, that is the right side of the trade.
-
-**Nothing preloads a weight it never sets.** DM Mono is a static family, so each
-listed weight is its own file preloaded at high priority. The site only ever
-draws it at 400 — 300 and 500 were 17 KB of the critical path rendering nothing.
-
-**The nav mark asks for the size it draws.** `sizes="120px"` was already an
-improvement on the intrinsic 2877px, but Next's default width ladder steps
-128 → 256, so every retina phone still landed on the 256 variant for a mark
-drawn 83 px wide. Two intermediate sizes in `next.config.ts` and a `sizes` that
-states the real rendered width give the browser somewhere to land in between:
-a 1.75× screen now takes the 160 variant (6.8 KB) and a 2× screen the 192
-(8.7 KB), rather than both rounding up to 256 (12.2 KB). The figures quoted
-here are the 1.75× case, because that is the DPR Lighthouse's mobile preset
-emulates.
-
-`priority` is deprecated in Next 16, so both above-the-fold images now say
-`loading="eager"` instead. React still hoists a preload link for any non-lazy
-image, so they keep their head start — they just no longer carry a priority hint
-that would compete with the poster.
-
-Measured with Lighthouse (mobile, simulated slow 4G) against `next start`:
-performance 0.80–0.86 → 0.88–0.90, LCP 4.4 s → 3.5 s, first load 485 KB / 19
-requests → 451 KB / 16. The LCP-discovery and render-blocking audits go from
-failing to clean.
 
 ## Media
 

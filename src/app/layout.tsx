@@ -4,11 +4,17 @@ import { SITE, CANONICAL_ORIGIN, ASSET_ORIGIN, OG_IMAGE } from "@/data/site";
 import { MENU } from "@/data/menu";
 import "./globals.css";
 
+// SOFT and WONK are the two axes this design actually sets (see `.display-*`
+// in globals.css). `opsz` was the third, and it was the expensive one: Google
+// serves Fraunces with all three at 121 KB and with just these two at 62 KB.
+// Half the display face's weight for an axis the page never sets a value on —
+// and every one of those bytes was preloaded from the head, in front of the
+// LCP image.
 const fraunces = Fraunces({
   subsets: ["latin"],
   variable: "--font-fraunces",
   display: "swap",
-  axes: ["SOFT", "WONK", "opsz"],
+  axes: ["SOFT", "WONK"],
 });
 
 const archivo = Archivo({
@@ -17,10 +23,9 @@ const archivo = Archivo({
   display: "swap",
 });
 
-// DM Mono is a static family, so every weight listed here is a separate file
-// preloaded at high priority on the first screen. The site sets it only
-// through `.eyebrow`, `.leader__price` and `font-mono`, none of which change
-// the weight — 300 and 500 were 17 KB of the critical path rendering nothing.
+// One weight, because one weight is what the site sets. 300 and 500 were
+// never referenced by a rule, and each was a separate woff2 preloaded from the
+// head — 17 KB of the first-screen budget spent on faces nothing asks for.
 const dmMono = DM_Mono({
   subsets: ["latin"],
   variable: "--font-dm-mono",
@@ -71,9 +76,14 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
   },
   alternates: { canonical: CANONICAL_ORIGIN },
+  // `src/app/favicon.ico` is picked up automatically and is the icon browsers
+  // fetch on page load — 16 and 32 only, which is all an .ico is ever asked
+  // for. The second declaration here used to be a 270px PNG, and Chrome
+  // dutifully downloaded both: 39 KB of tab icon on the critical path. The
+  // Apple touch icon stays, at the 180px Apple actually wants; nothing fetches
+  // it during a page load.
   icons: {
-    icon: [{ url: "/favicon.png", type: "image/png" }],
-    apple: [{ url: "/favicon.png" }],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
